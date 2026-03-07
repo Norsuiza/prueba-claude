@@ -19,7 +19,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
-from mobile.utils.widgets import RoundedButton, rounded_btn, HamburgerButton
+from mobile.utils.widgets import RoundedButton, rounded_btn, HamburgerButton, footer_bar, popup_content
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.94, 0.94, 0.94, 1)
@@ -87,16 +87,11 @@ class ModuleCard(BoxLayout):
         self.add_widget(t)
         self.add_widget(s)
 
-        if active and target:
-            btn_overlay = Button(
-                background_color=(0, 0, 0, 0),
-                background_normal='', background_down='',
-                pos=self.pos, size=self.size, size_hint=(None, None),
-            )
-            btn_overlay.bind(on_press=lambda x: self._go())
-            self.bind(pos=lambda w, v: setattr(btn_overlay, 'pos', v),
-                      size=lambda w, v: setattr(btn_overlay, 'size', v))
-            self.add_widget(btn_overlay)
+    def on_touch_down(self, touch):
+        if self._active and self._target and self.collide_point(*touch.pos):
+            self._go()
+            return True
+        return super().on_touch_down(touch)
 
     def _upd(self, *a):
         self._bg.pos = self.pos
@@ -153,8 +148,8 @@ class DrawerMenu(BoxLayout):
 
         # Items del menú
         items = [
-            ('  👤  Mi Perfil',      profile_cb, C_TEXT),
-            ('  🚪  Cerrar sesión',  logout_cb,  C_RED),
+            ('  Mi Perfil',      profile_cb, C_TEXT),
+            ('  Cerrar sesion',  logout_cb,  C_RED),
         ]
         for text, cb, color in items:
             sep = BoxLayout(size_hint_y=None, height=dp(1))
@@ -268,14 +263,16 @@ class HomeScreen(Screen):
 
         scroll.add_widget(grid)
         main.add_widget(scroll)
+        main.add_widget(footer_bar())
         root.add_widget(main)
 
         # ── Overlay oscuro (cierra el drawer al tocar) ──
+        # size (0,0) cuando cerrado para no bloquear toques
         self._overlay = Button(
-            size_hint=(1, 1),
+            size_hint=(None, None), size=(0, 0),
             background_color=(0, 0, 0, 0.45),
             background_normal='', background_down='',
-            opacity=0, disabled=True,
+            opacity=0,
         )
         self._overlay.bind(on_press=lambda x: self._close_drawer())
         root.add_widget(self._overlay)
@@ -301,14 +298,15 @@ class HomeScreen(Screen):
 
     def _open_drawer(self):
         self._drawer_open = True
+        self._overlay.size_hint = (1, 1)
         self._overlay.opacity = 1
-        self._overlay.disabled = False
         self._drawer.open()
 
     def _close_drawer(self):
         self._drawer_open = False
+        self._overlay.size_hint = (None, None)
+        self._overlay.size = (0, 0)
         self._overlay.opacity = 0
-        self._overlay.disabled = True
         self._drawer.close()
 
     # ── Perfil ───────────────────────────────────────────────────────────────
@@ -316,7 +314,7 @@ class HomeScreen(Screen):
     def _show_profile(self):
         user = api_client.get_user() or {}
 
-        content = BoxLayout(orientation='vertical', padding=dp(14), spacing=dp(6))
+        content = popup_content(padding=14, spacing=6)
         scroll = ScrollView(size_hint_y=None, height=dp(380))
         form = BoxLayout(orientation='vertical', spacing=dp(4), size_hint_y=None)
         form.bind(minimum_height=form.setter('height'))

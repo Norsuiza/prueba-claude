@@ -14,7 +14,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
-from mobile.utils.widgets import rounded_btn, RoundedButton
+from mobile.utils.widgets import rounded_btn, RoundedButton, footer_bar
 from mobile.config import get_server_url, save_server_url
 
 # Colores Gobierno de México
@@ -71,7 +71,7 @@ class LoginScreen(Screen):
             size_hint_y=None, height=dp(18), bold=True,
         ))
         header.add_widget(Label(
-            text='Sistema IPH',
+            text='ChatPoli',
             font_size=dp(28), color=C_WHITE,
             size_hint_y=None, height=dp(40), bold=True,
         ))
@@ -123,7 +123,7 @@ class LoginScreen(Screen):
 
         # Config servidor
         btn_cfg = Button(
-            text='⚙ Configurar servidor',
+            text='[Config] Servidor',
             size_hint_y=None, height=dp(36),
             background_color=(0, 0, 0, 0), color=C_GRAY,
             font_size=dp(12),
@@ -131,6 +131,7 @@ class LoginScreen(Screen):
         btn_cfg.bind(on_press=self.show_config)
         outer.add_widget(btn_cfg)
         outer.add_widget(Label())  # spacer
+        outer.add_widget(footer_bar())
         self.add_widget(outer)
 
     def _upd(self, *a):

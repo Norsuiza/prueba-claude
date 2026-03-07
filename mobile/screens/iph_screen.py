@@ -21,7 +21,7 @@ if ROOT not in sys.path:
 
 from mobile.utils import api_client
 from mobile.utils.pdf_generator import generate_iph_pdf
-from mobile.utils.widgets import RoundedButton, rounded_btn
+from mobile.utils.widgets import RoundedButton, rounded_btn, popup_content
 from mobile.data.iph_questions import get_question_list
 
 C_WHITE  = (1, 1, 1, 1)
@@ -374,7 +374,7 @@ class IPHScreen(Screen):
         btn_pdf = rounded_btn('Generar PDF oficial', height=dp(50),
                                on_press=self._generate_pdf)
         btn_new = rounded_btn('Nuevo informe', bg=(0.7, 0.7, 0.7, 1),
-                               text_color=C_TEXT, height=dp(42),
+                               color=C_TEXT, height=dp(42),
                                on_press=lambda x: self.on_enter())
         self.input_area.add_widget(btn_pdf)
         self.input_area.add_widget(btn_new)
@@ -398,7 +398,7 @@ class IPHScreen(Screen):
 
     def _pdf_ok(self, path):
         self._bot(f'[b]PDF generado.[/b]\nGuardado en:\nDocuments/IPH_Reportes/')
-        content = BoxLayout(orientation='vertical', padding=dp(16), spacing=dp(10))
+        content = popup_content()
         content.add_widget(Label(
             text=f'Archivo:\n{os.path.basename(path)}\n\nDocuments/IPH_Reportes/',
             color=C_TEXT, font_size=dp(13), halign='center',
@@ -412,7 +412,7 @@ class IPHScreen(Screen):
         pop.open()
 
     def _confirm_exit(self, *a):
-        content = BoxLayout(orientation='vertical', padding=dp(16), spacing=dp(10))
+        content = popup_content()
         content.add_widget(Label(
             text='¿Salir del IPH?\nSe perderá el progreso actual.',
             color=C_TEXT, font_size=dp(14), halign='center',
@@ -420,7 +420,7 @@ class IPHScreen(Screen):
         ))
         row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(10))
         b1 = rounded_btn('Continuar', bg=(0.75, 0.75, 0.75, 1),
-                          text_color=C_TEXT, height=dp(46))
+                          color=C_TEXT, height=dp(46))
         b2 = rounded_btn('Salir', bg=C_RED, height=dp(46))
         row.add_widget(b1)
         row.add_widget(b2)

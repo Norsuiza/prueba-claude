@@ -15,7 +15,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
-from mobile.utils.widgets import rounded_btn
+from mobile.utils.widgets import rounded_btn, footer_bar
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.96, 0.96, 0.96, 1)
@@ -131,6 +131,7 @@ class RegisterScreen(Screen):
 
         scroll.add_widget(form)
         outer.add_widget(scroll)
+        outer.add_widget(footer_bar())
         self.add_widget(outer)
 
     def do_register(self, *a):

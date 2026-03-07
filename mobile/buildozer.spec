@@ -14,9 +14,8 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 android.api = 33
 android.minapi = 26
 android.ndk = 25b
-android.sdk = 33
 android.accept_sdk_license = True
-android.arch = arm64-v8a
+android.archs = arm64-v8a
 source.exclude_dirs = __pycache__, .buildozer, bin, tests
 
 [buildozer]

@@ -6,6 +6,8 @@ from kivy.graphics import Color, RoundedRectangle, Rectangle
 from kivy.metrics import dp
 
 C_WHITE  = (1, 1, 1, 1)
+
+C_WHITE  = (1, 1, 1, 1)
 C_GREEN  = (0.0, 0.408, 0.278, 1)
 C_RED    = (0.808, 0.067, 0.149, 1)
 C_GRAY   = (0.85, 0.85, 0.85, 1)
@@ -63,6 +65,28 @@ class HamburgerButton(Button):
         self._l2.pos = (x, y);      self._l2.size = (lw, lh)
         y -= lh + gap
         self._l3.pos = (x, y);      self._l3.size = (lw, lh)
+
+
+def popup_content(padding=16, spacing=10):
+    """BoxLayout con fondo blanco para usar como content en Popup."""
+    box = BoxLayout(orientation='vertical', padding=dp(padding), spacing=dp(spacing))
+    with box.canvas.before:
+        Color(*C_WHITE)
+        box._bg = Rectangle(pos=box.pos, size=box.size)
+    box.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+             size=lambda w, v: setattr(w._bg, 'size', v))
+    return box
+
+
+def footer_bar():
+    """Pie de página estándar para todas las pantallas excepto el chat."""
+    lbl = Label(
+        text='(c) Dev with love by @NorzCode 2026',
+        font_size=dp(10), color=(0.55, 0.55, 0.55, 1),
+        size_hint_y=None, height=dp(26), halign='center',
+    )
+    lbl.bind(size=lbl.setter('text_size'))
+    return lbl
 
 
 def rounded_btn(text, bg=None, color=C_WHITE, height=dp(46), radius=dp(10), **kwargs):
