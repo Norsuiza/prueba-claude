@@ -2,7 +2,7 @@
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
-from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics import Color, RoundedRectangle, Rectangle
 from kivy.metrics import dp
 
 C_WHITE  = (1, 1, 1, 1)
@@ -34,6 +34,35 @@ class RoundedButton(Button):
 
     def set_color(self, color):
         self._c.rgba = color
+
+
+class HamburgerButton(Button):
+    """Botón hamburguesa: 3 líneas horizontales dibujadas en canvas (sin Unicode)."""
+    def __init__(self, line_color=C_WHITE, **kwargs):
+        super().__init__(**kwargs)
+        self.background_color = (0, 0, 0, 0)
+        self.background_normal = ''
+        self.background_down = ''
+        self.text = ''
+        with self.canvas.after:
+            self._lc = Color(*line_color)
+            self._l1 = Rectangle()
+            self._l2 = Rectangle()
+            self._l3 = Rectangle()
+        self.bind(pos=self._draw, size=self._draw)
+
+    def _draw(self, *a):
+        lw = self.width * 0.52
+        lh = dp(2.5)
+        gap = dp(5)
+        x = self.center_x - lw / 2
+        total = lh * 3 + gap * 2
+        y = self.center_y + total / 2 - lh
+        self._l1.pos = (x, y);      self._l1.size = (lw, lh)
+        y -= lh + gap
+        self._l2.pos = (x, y);      self._l2.size = (lw, lh)
+        y -= lh + gap
+        self._l3.pos = (x, y);      self._l3.size = (lw, lh)
 
 
 def rounded_btn(text, bg=None, color=C_WHITE, height=dp(46), radius=dp(10), **kwargs):

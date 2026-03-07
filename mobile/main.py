@@ -23,7 +23,7 @@ from mobile.utils import api_client
 
 class IPHApp(App):
     def build(self):
-        self.title = 'Sistema IPH · Culiacán'
+        self.title = 'ChatPoli'
         sm = ScreenManager(transition=FadeTransition(duration=0.2))
         sm.add_widget(LoginScreen(name='login'))
         sm.add_widget(RegisterScreen(name='register'))

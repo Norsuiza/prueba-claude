@@ -45,12 +45,13 @@ class ChatBubble(BoxLayout):
         lbl = Label(
             text=text, font_size=dp(14), color=tc,
             halign='left' if is_bot else 'right',
-            valign='top', markup=True, size_hint_x=0.82,
+            valign='top', markup=True, size_hint_x=1, size_hint_y=None,
         )
         lbl.bind(width=lambda w, v: setattr(lbl, 'text_size', (v, None)))
-        lbl.bind(texture_size=lambda w, v: setattr(lbl, 'height', v[1] + dp(10)))
+        lbl.bind(texture_size=lambda w, v: setattr(lbl, 'height', v[1] + dp(6)))
 
-        bubble = BoxLayout(size_hint_x=0.82, size_hint_y=None, padding=dp(12))
+        bubble = BoxLayout(size_hint_x=0.82, size_hint_y=None,
+                           padding=[dp(12), dp(8)], spacing=0)
         with bubble.canvas.before:
             Color(*bg)
             bubble._bg = RoundedRectangle(pos=bubble.pos, size=bubble.size,

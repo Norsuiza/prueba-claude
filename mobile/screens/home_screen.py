@@ -19,7 +19,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
-from mobile.utils.widgets import RoundedButton, rounded_btn
+from mobile.utils.widgets import RoundedButton, rounded_btn, HamburgerButton
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.94, 0.94, 0.94, 1)
@@ -224,16 +224,13 @@ class HomeScreen(Screen):
                  size=lambda w, v: setattr(w._bg, 'size', v))
 
         # Botón hamburguesa
-        btn_ham = Button(
-            text='☰', font_size=dp(22), size_hint_x=None, width=dp(48),
-            background_color=(0, 0, 0, 0),
-            background_normal='', background_down='',
-            color=C_WHITE,
+        btn_ham = HamburgerButton(
+            line_color=C_WHITE, size_hint_x=None, width=dp(48),
         )
         btn_ham.bind(on_press=lambda x: self._toggle_drawer())
 
         title_box = BoxLayout(orientation='vertical')
-        self.lbl_name = Label(text='Sistema IPH', font_size=dp(16), bold=True,
+        self.lbl_name = Label(text='ChatPoli', font_size=dp(16), bold=True,
                                color=C_WHITE, halign='left')
         self.lbl_name.bind(size=self.lbl_name.setter('text_size'))
         self.lbl_sub = Label(text='Culiacán, Sinaloa', font_size=dp(11),
@@ -278,7 +275,7 @@ class HomeScreen(Screen):
             size_hint=(1, 1),
             background_color=(0, 0, 0, 0.45),
             background_normal='', background_down='',
-            opacity=0,
+            opacity=0, disabled=True,
         )
         self._overlay.bind(on_press=lambda x: self._close_drawer())
         root.add_widget(self._overlay)
@@ -305,11 +302,13 @@ class HomeScreen(Screen):
     def _open_drawer(self):
         self._drawer_open = True
         self._overlay.opacity = 1
+        self._overlay.disabled = False
         self._drawer.open()
 
     def _close_drawer(self):
         self._drawer_open = False
         self._overlay.opacity = 0
+        self._overlay.disabled = True
         self._drawer.close()
 
     # ── Perfil ───────────────────────────────────────────────────────────────
@@ -395,7 +394,7 @@ class HomeScreen(Screen):
         user = api_client.get_user()
         if user:
             nombre = f"{user.get('nombre', '')} {user.get('primer_apellido', '')}".strip()
-            self.lbl_name.text = nombre or 'Sistema IPH'
+            self.lbl_name.text = nombre or 'ChatPoli'
             cargo = user.get('cargo_grado', '')
             inst = user.get('institucion', '')
             self.lbl_sub.text = f"{cargo} · {inst}".strip(' · ') or 'Culiacán, Sinaloa'
