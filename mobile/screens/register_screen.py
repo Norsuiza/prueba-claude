@@ -15,6 +15,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
+from mobile.utils.widgets import rounded_btn
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.96, 0.96, 0.96, 1)
@@ -124,11 +125,7 @@ class RegisterScreen(Screen):
         )
         form.add_widget(self.lbl_error)
 
-        btn = Button(
-            text='CREAR CUENTA', size_hint_y=None, height=dp(50),
-            background_color=C_GREEN, color=C_WHITE, font_size=dp(15), bold=True,
-        )
-        btn.bind(on_press=self.do_register)
+        btn = rounded_btn('CREAR CUENTA', height=dp(50), on_press=self.do_register)
         form.add_widget(btn)
         form.add_widget(Label(size_hint_y=None, height=dp(20)))
 

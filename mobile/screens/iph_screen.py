@@ -9,7 +9,6 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.progressbar import ProgressBar
 from kivy.uix.popup import Popup
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.clock import Clock
@@ -22,59 +21,50 @@ if ROOT not in sys.path:
 
 from mobile.utils import api_client
 from mobile.utils.pdf_generator import generate_iph_pdf
+from mobile.utils.widgets import RoundedButton, rounded_btn
 from mobile.data.iph_questions import get_question_list
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.96, 0.96, 0.96, 1)
 C_GREEN  = (0.0, 0.408, 0.278, 1)
-C_GREEN2 = (0.0, 0.52, 0.35, 1)   # verde más claro para hover
 C_RED    = (0.808, 0.067, 0.149, 1)
 C_TEXT   = (0.1, 0.1, 0.1, 1)
 C_GRAY   = (0.5, 0.5, 0.5, 1)
-C_BOT    = (0.92, 0.97, 0.93, 1)  # burbuja bot: verde muy claro
-C_USER   = (0.0, 0.408, 0.278, 1) # burbuja usuario: verde gobierno
+C_BOT    = (0.90, 0.96, 0.91, 1)
 C_INPUT  = (1, 1, 1, 1)
-C_BORDER = (0.82, 0.82, 0.82, 1)
+C_CHOICE = (0.96, 0.96, 0.96, 1)
 
 
 class ChatBubble(BoxLayout):
     def __init__(self, text, is_bot=True, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = 'horizontal'
-        self.size_hint_y = None
-        self.padding = [dp(8), dp(4)]
-
-        bg = C_BOT if is_bot else C_USER
-        txt_color = C_TEXT if is_bot else C_WHITE
-        align = 'left' if is_bot else 'right'
+        super().__init__(orientation='horizontal', size_hint_y=None,
+                         padding=[dp(8), dp(4)], **kwargs)
+        bg = C_BOT if is_bot else C_GREEN
+        tc = C_TEXT if is_bot else C_WHITE
 
         lbl = Label(
-            text=text, font_size=dp(14),
-            color=txt_color,
-            halign=align, valign='top',
-            markup=True,
-            size_hint_x=0.82,
+            text=text, font_size=dp(14), color=tc,
+            halign='left' if is_bot else 'right',
+            valign='top', markup=True, size_hint_x=0.82,
         )
         lbl.bind(width=lambda w, v: setattr(lbl, 'text_size', (v, None)))
-        lbl.bind(texture_size=lambda w, v: setattr(lbl, 'height', v[1] + dp(8)))
+        lbl.bind(texture_size=lambda w, v: setattr(lbl, 'height', v[1] + dp(10)))
 
         bubble = BoxLayout(size_hint_x=0.82, size_hint_y=None, padding=dp(12))
         with bubble.canvas.before:
             Color(*bg)
-            bubble._bg = RoundedRectangle(pos=bubble.pos, size=bubble.size, radius=[dp(10)])
+            bubble._bg = RoundedRectangle(pos=bubble.pos, size=bubble.size,
+                                           radius=[dp(12)])
         bubble.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
                     size=lambda w, v: setattr(w._bg, 'size', v))
         bubble.add_widget(lbl)
         bubble.bind(minimum_height=bubble.setter('height'))
 
-        spacer = Label(size_hint_x=0.18)
+        sp = Label(size_hint_x=0.18)
         if is_bot:
-            self.add_widget(bubble)
-            self.add_widget(spacer)
+            self.add_widget(bubble); self.add_widget(sp)
         else:
-            self.add_widget(spacer)
-            self.add_widget(bubble)
-
+            self.add_widget(sp); self.add_widget(bubble)
         self.bind(minimum_height=self.setter('height'))
 
 
@@ -97,10 +87,8 @@ class IPHScreen(Screen):
         outer = BoxLayout(orientation='vertical')
 
         # Header
-        hdr = BoxLayout(
-            orientation='horizontal', size_hint_y=None, height=dp(52),
-            padding=[dp(8), dp(6)], spacing=dp(8),
-        )
+        hdr = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(52),
+                        padding=[dp(8), dp(6)], spacing=dp(8))
         with hdr.canvas.before:
             Color(*C_GREEN)
             hdr._bg = Rectangle(pos=hdr.pos, size=hdr.size)
@@ -109,48 +97,79 @@ class IPHScreen(Screen):
 
         btn_back = Button(
             text='← Inicio', size_hint_x=None, width=dp(80),
-            background_color=(0, 0, 0, 0), color=C_WHITE, font_size=dp(13),
+            background_color=(0, 0, 0, 0), background_normal='', background_down='',
+            color=C_WHITE, font_size=dp(13),
         )
         btn_back.bind(on_press=self._confirm_exit)
 
-        self.lbl_section = Label(
-            text='IPH · Delitos', font_size=dp(14), bold=True, color=C_WHITE,
-        )
+        self.lbl_section = Label(text='IPH · Delitos', font_size=dp(14),
+                                  bold=True, color=C_WHITE)
         hdr.add_widget(btn_back)
         hdr.add_widget(self.lbl_section)
         outer.add_widget(hdr)
 
-        # Barra de progreso verde
-        self.progress_bar = ProgressBar(
-            max=100, value=0, size_hint_y=None, height=dp(5),
-        )
-        outer.add_widget(self.progress_bar)
+        # Barra de progreso + porcentaje
+        prog_row = BoxLayout(size_hint_y=None, height=dp(28),
+                             padding=[dp(10), dp(2)], spacing=dp(8))
+        with prog_row.canvas.before:
+            Color(*C_WHITE)
+            prog_row._bg = Rectangle(pos=prog_row.pos, size=prog_row.size)
+        prog_row.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+                      size=lambda w, v: setattr(w._bg, 'size', v))
 
         self.lbl_progress = Label(
-            text='', font_size=dp(10), color=C_GRAY,
-            size_hint_y=None, height=dp(18),
+            text='Iniciando...', font_size=dp(10), color=C_GRAY,
+            size_hint_x=None, width=dp(120), halign='left',
         )
-        outer.add_widget(self.lbl_progress)
+        self.lbl_progress.bind(size=self.lbl_progress.setter('text_size'))
+
+        # Barra visual
+        bar_outer = BoxLayout(size_hint_y=None, height=dp(8))
+        with bar_outer.canvas.before:
+            Color(0.88, 0.88, 0.88, 1)
+            bar_outer._bg = RoundedRectangle(pos=bar_outer.pos, size=bar_outer.size, radius=[dp(4)])
+        bar_outer.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+                       size=lambda w, v: setattr(w._bg, 'size', v))
+
+        self._bar_fill = BoxLayout(size_hint_x=0, size_hint_y=1)
+        with self._bar_fill.canvas.before:
+            Color(*C_GREEN)
+            self._bar_fill._bg = RoundedRectangle(
+                pos=self._bar_fill.pos, size=self._bar_fill.size, radius=[dp(4)])
+        self._bar_fill.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+                            size=lambda w, v: setattr(w._bg, 'size', v))
+
+        bar_outer.add_widget(self._bar_fill)
+        bar_outer.add_widget(Label())  # relleno derecho
+
+        self.lbl_pct = Label(
+            text='0%', font_size=dp(10), bold=True, color=C_GREEN,
+            size_hint_x=None, width=dp(38), halign='right',
+        )
+        self.lbl_pct.bind(size=self.lbl_pct.setter('text_size'))
+
+        prog_row.add_widget(self.lbl_progress)
+        prog_row.add_widget(bar_outer)
+        prog_row.add_widget(self.lbl_pct)
+        outer.add_widget(prog_row)
 
         # Chat
         self.scroll = ScrollView()
-        self.chat = GridLayout(
-            cols=1, padding=[dp(8), dp(8)], spacing=dp(6),
-            size_hint_y=None,
-        )
+        self.chat = GridLayout(cols=1, padding=[dp(8), dp(8)], spacing=dp(6),
+                                size_hint_y=None)
         self.chat.bind(minimum_height=self.chat.setter('height'))
         self.scroll.add_widget(self.chat)
         outer.add_widget(self.scroll)
 
-        # Área de input
+        # Input area
         self.input_area = BoxLayout(
             orientation='vertical', size_hint_y=None,
             padding=[dp(10), dp(8)], spacing=dp(6),
         )
         with self.input_area.canvas.before:
             Color(*C_WHITE)
-            self.input_area._bg = Rectangle(
-                pos=self.input_area.pos, size=self.input_area.size)
+            self.input_area._bg = Rectangle(pos=self.input_area.pos,
+                                             size=self.input_area.size)
         self.input_area.bind(
             pos=lambda w, v: setattr(w._bg, 'pos', v),
             size=lambda w, v: setattr(w._bg, 'size', v),
@@ -159,25 +178,38 @@ class IPHScreen(Screen):
         outer.add_widget(self.input_area)
         self.add_widget(outer)
 
-    # ── Flujo del chatbot ──────────────────────────────────────────────────
+    # ── Progreso ──────────────────────────────────────────────────────────────
+
+    def _update_progress(self):
+        total = len(self.questions)
+        if total == 0:
+            return
+        pct = int(self.current_index / total * 100)
+        self._bar_fill.size_hint_x = pct / 100
+        self.lbl_pct.text = f'{pct}%'
+        self.lbl_progress.text = f'Pregunta {self.current_index + 1} de {total}'
+
+    # ── Flujo chatbot ─────────────────────────────────────────────────────────
 
     def on_enter(self):
         self.form_data = {}
         self.current_index = 0
         self.chat.clear_widgets()
         self.questions = get_question_list(self.form_data)
-        self._bot('¡Hola! Soy el asistente [b]IPH[/b].\nResponde cada pregunta para llenar el informe.\nAl final se generará el PDF oficial.')
+        self._update_progress()
+        self._bot('¡Hola! Soy el asistente [b]IPH[/b].\n'
+                  'Responde cada pregunta para llenar el informe.\n'
+                  'Al final se generará el PDF oficial.')
         Clock.schedule_once(lambda dt: self._ask(), 0.4)
 
     def _ask(self):
+        # Recalcular preguntas (pueden cambiar según respuestas)
         self.questions = get_question_list(self.form_data)
         if self.current_index >= len(self.questions):
             self._show_finish()
             return
         q = self.questions[self.current_index]
-        total = len(self.questions)
-        self.progress_bar.value = int(self.current_index / total * 100)
-        self.lbl_progress.text = f'Pregunta {self.current_index + 1} de {total}'
+        self._update_progress()
         self.lbl_section.text = q.get('seccion', 'IPH · Delitos')
         self._bot(q['texto'])
         self._render_input(q)
@@ -186,11 +218,11 @@ class IPHScreen(Screen):
         self.chat.add_widget(ChatBubble(text, is_bot=True))
         Clock.schedule_once(lambda dt: setattr(self.scroll, 'scroll_y', 0), 0.1)
 
-    def _user(self, text):
+    def _user_msg(self, text):
         self.chat.add_widget(ChatBubble(text, is_bot=False))
         Clock.schedule_once(lambda dt: setattr(self.scroll, 'scroll_y', 0), 0.1)
 
-    # ── Renderizado de inputs ──────────────────────────────────────────────
+    # ── Inputs ────────────────────────────────────────────────────────────────
 
     def _render_input(self, q):
         self.input_area.clear_widgets()
@@ -221,7 +253,8 @@ class IPHScreen(Screen):
             padding=[dp(10), dp(10)], font_size=dp(15),
             cursor_color=C_GREEN,
         )
-        btn = self._green_btn('Siguiente →', lambda x: self._submit_text(q, ti.text.strip()))
+        btn = rounded_btn('Siguiente →', height=dp(46),
+                          on_press=lambda x: self._submit_text(q, ti.text.strip()))
         self.input_area.add_widget(ti)
         self.input_area.add_widget(btn)
         ti.focus = True
@@ -235,29 +268,32 @@ class IPHScreen(Screen):
             padding=[dp(10), dp(10)], font_size=dp(14),
             cursor_color=C_GREEN,
         )
-        btn = self._green_btn('Siguiente →', lambda x: self._submit_text(q, ti.text.strip()))
+        btn = rounded_btn('Siguiente →', height=dp(46),
+                          on_press=lambda x: self._submit_text(q, ti.text.strip()))
         self.input_area.add_widget(ti)
         self.input_area.add_widget(btn)
 
     def _ui_yesno(self, q):
-        row = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(10))
-        b_si = Button(text='Sí', background_color=C_GREEN, color=C_WHITE, font_size=dp(16), bold=True)
-        b_no = Button(text='No', background_color=C_RED,   color=C_WHITE, font_size=dp(16), bold=True)
-        b_si.bind(on_press=lambda x: self._submit_choice(q, 'Sí'))
-        b_no.bind(on_press=lambda x: self._submit_choice(q, 'No'))
+        row = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(10))
+        b_si = rounded_btn('Sí', height=dp(50),
+                            on_press=lambda x: self._submit_choice(q, 'Sí'))
+        b_no = rounded_btn('No', bg=C_RED, height=dp(50),
+                            on_press=lambda x: self._submit_choice(q, 'No'))
         row.add_widget(b_si)
         row.add_widget(b_no)
         self.input_area.add_widget(row)
 
     def _ui_choice(self, q):
-        sc = ScrollView(size_hint_y=None, height=min(dp(200), dp(46) * len(q['opciones'])))
-        inner = GridLayout(cols=1, spacing=dp(4), size_hint_y=None, padding=[0, dp(2)])
+        sc = ScrollView(size_hint_y=None,
+                        height=min(dp(210), dp(48) * len(q['opciones'])))
+        inner = GridLayout(cols=1, spacing=dp(5), size_hint_y=None,
+                           padding=[0, dp(2)])
         inner.bind(minimum_height=inner.setter('height'))
         for opt in q['opciones']:
-            b = Button(
-                text=opt, size_hint_y=None, height=dp(44),
-                background_color=C_WHITE, color=C_TEXT,
-                font_size=dp(13),
+            b = RoundedButton(
+                text=opt, bg_color=C_CHOICE, text_color=C_TEXT,
+                radius=dp(8), size_hint_y=None, height=dp(44),
+                font_size=dp(13), bold=False,
             )
             b.bind(on_press=lambda x, o=opt: self._submit_choice(q, o))
             inner.add_widget(b)
@@ -267,13 +303,15 @@ class IPHScreen(Screen):
     def _ui_multiselect(self, q):
         self.multiselect_selected = []
         self._ms_btns = {}
-        sc = ScrollView(size_hint_y=None, height=min(dp(180), dp(44) * len(q['opciones'])))
-        inner = GridLayout(cols=1, spacing=dp(4), size_hint_y=None, padding=[0, dp(2)])
+        sc = ScrollView(size_hint_y=None,
+                        height=min(dp(180), dp(46) * len(q['opciones'])))
+        inner = GridLayout(cols=1, spacing=dp(4), size_hint_y=None,
+                           padding=[0, dp(2)])
         inner.bind(minimum_height=inner.setter('height'))
         for opt in q['opciones']:
-            b = Button(
-                text=opt, size_hint_y=None, height=dp(42),
-                background_color=C_WHITE, color=C_TEXT, font_size=dp(12),
+            b = RoundedButton(
+                text=opt, bg_color=C_CHOICE, text_color=C_TEXT,
+                radius=dp(8), size_hint_y=None, height=dp(42), font_size=dp(12),
             )
             b.bind(on_press=lambda x, o=opt: self._toggle(o, x))
             inner.add_widget(b)
@@ -281,63 +319,62 @@ class IPHScreen(Screen):
         sc.add_widget(inner)
         self.input_area.add_widget(sc)
         self.input_area.add_widget(
-            self._green_btn('Confirmar selección →', lambda x: self._submit_multi(q))
+            rounded_btn('Confirmar selección →', height=dp(46),
+                        on_press=lambda x: self._submit_multi(q))
         )
 
     def _toggle(self, opt, btn):
         if opt in self.multiselect_selected:
             self.multiselect_selected.remove(opt)
-            btn.background_color = C_WHITE
+            btn.set_color(C_CHOICE)
             btn.color = C_TEXT
         else:
             self.multiselect_selected.append(opt)
-            btn.background_color = C_GREEN
+            btn.set_color(C_GREEN)
             btn.color = C_WHITE
 
-    def _green_btn(self, text, callback):
-        b = Button(
-            text=text, size_hint_y=None, height=dp(46),
-            background_color=C_GREEN, color=C_WHITE,
-            font_size=dp(15), bold=True,
-        )
-        b.bind(on_press=callback)
-        return b
-
-    # ── Submit ─────────────────────────────────────────────────────────────
+    # ── Submit ────────────────────────────────────────────────────────────────
 
     def _submit_text(self, q, val):
         self.form_data[q['campo']] = val or 'N/A'
-        self._user(val or 'N/A')
+        self._user_msg(val or 'N/A')
         self.current_index += 1
+        # Recalcular total ANTES de mostrar progreso
+        self.questions = get_question_list(self.form_data)
+        self._update_progress()
         Clock.schedule_once(lambda dt: self._ask(), 0.3)
 
     def _submit_choice(self, q, val):
         self.form_data[q['campo']] = val
-        self._user(val)
+        self._user_msg(val)
         self.current_index += 1
+        self.questions = get_question_list(self.form_data)
+        self._update_progress()
         Clock.schedule_once(lambda dt: self._ask(), 0.3)
 
     def _submit_multi(self, q):
         sel = list(self.multiselect_selected) or ['Ninguno']
         self.form_data[q['campo']] = sel
-        self._user(', '.join(sel))
+        self._user_msg(', '.join(sel))
         self.current_index += 1
+        self.questions = get_question_list(self.form_data)
+        self._update_progress()
         Clock.schedule_once(lambda dt: self._ask(), 0.3)
 
-    # ── Finalizar ──────────────────────────────────────────────────────────
+    # ── Finalizar ─────────────────────────────────────────────────────────────
 
     def _show_finish(self):
-        self.progress_bar.value = 100
-        self.lbl_progress.text = 'Formulario completo'
+        self._bar_fill.size_hint_x = 1
+        self.lbl_pct.text = '100%'
+        self.lbl_progress.text = '¡Formulario completo!'
         self.input_area.clear_widgets()
-        self._bot('[b]¡Formulario completado![/b]\nPresiona el botón para generar el PDF oficial.')
-
-        btn_pdf = self._green_btn('Generar PDF oficial', self._generate_pdf)
-        btn_new = Button(
-            text='Nuevo informe', size_hint_y=None, height=dp(42),
-            background_color=(0, 0, 0, 0), color=C_GREEN, font_size=dp(14),
-        )
-        btn_new.bind(on_press=lambda x: self.on_enter())
+        self._bot('[b]¡Formulario completado![/b]\n'
+                  'Presiona el botón para generar el PDF oficial.')
+        btn_pdf = rounded_btn('Generar PDF oficial', height=dp(50),
+                               on_press=self._generate_pdf)
+        btn_new = rounded_btn('Nuevo informe', bg=(0.7, 0.7, 0.7, 1),
+                               text_color=C_TEXT, height=dp(42),
+                               on_press=lambda x: self.on_enter())
         self.input_area.add_widget(btn_pdf)
         self.input_area.add_widget(btn_new)
 
@@ -359,19 +396,16 @@ class IPHScreen(Screen):
         threading.Thread(target=_run, daemon=True).start()
 
     def _pdf_ok(self, path):
-        self._bot(f'[b]PDF generado correctamente.[/b]\nGuardado en:\n{path}')
+        self._bot(f'[b]PDF generado.[/b]\nGuardado en:\nDocuments/IPH_Reportes/')
         content = BoxLayout(orientation='vertical', padding=dp(16), spacing=dp(10))
         content.add_widget(Label(
-            text=f'Archivo guardado:\n{os.path.basename(path)}\n\nCarpeta: Documents/IPH_Reportes',
+            text=f'Archivo:\n{os.path.basename(path)}\n\nDocuments/IPH_Reportes/',
             color=C_TEXT, font_size=dp(13), halign='center',
             size_hint_y=None, height=dp(70),
         ))
-        btn = Button(
-            text='Aceptar', size_hint_y=None, height=dp(44),
-            background_color=C_GREEN, color=C_WHITE, font_size=dp(14),
-        )
+        btn = rounded_btn('Aceptar', height=dp(44))
         pop = Popup(title='PDF Generado', content=content,
-                    size_hint=(0.85, None), height=dp(210))
+                    size_hint=(0.85, None), height=dp(220))
         btn.bind(on_press=pop.dismiss)
         content.add_widget(btn)
         pop.open()
@@ -379,18 +413,20 @@ class IPHScreen(Screen):
     def _confirm_exit(self, *a):
         content = BoxLayout(orientation='vertical', padding=dp(16), spacing=dp(10))
         content.add_widget(Label(
-            text='¿Salir del IPH?\nSe perderá el progreso.',
+            text='¿Salir del IPH?\nSe perderá el progreso actual.',
             color=C_TEXT, font_size=dp(14), halign='center',
-            size_hint_y=None, height=dp(50),
+            size_hint_y=None, height=dp(54),
         ))
-        row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
-        b1 = Button(text='Continuar', background_color=(0.85, 0.85, 0.85, 1), color=C_TEXT)
-        b2 = Button(text='Salir', background_color=C_RED, color=C_WHITE)
+        row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(10))
+        b1 = rounded_btn('Continuar', bg=(0.75, 0.75, 0.75, 1),
+                          text_color=C_TEXT, height=dp(46))
+        b2 = rounded_btn('Salir', bg=C_RED, height=dp(46))
         row.add_widget(b1)
         row.add_widget(b2)
         content.add_widget(row)
         pop = Popup(title='Salir', content=content,
-                    size_hint=(0.8, None), height=dp(190))
+                    size_hint=(0.82, None), height=dp(210))
         b1.bind(on_press=pop.dismiss)
-        b2.bind(on_press=lambda x: (pop.dismiss(), setattr(self.manager, 'current', 'home')))
+        b2.bind(on_press=lambda x: (pop.dismiss(),
+                                     setattr(self.manager, 'current', 'home')))
         pop.open()

@@ -1,10 +1,15 @@
 from kivy.uix.screenmanager import Screen
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.graphics import Color, Rectangle, RoundedRectangle, Line
+from kivy.uix.textinput import TextInput
+from kivy.uix.spinner import Spinner
+from kivy.uix.popup import Popup
+from kivy.animation import Animation
+from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.clock import Clock
 from kivy.metrics import dp
 
@@ -14,6 +19,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
+from mobile.utils.widgets import RoundedButton, rounded_btn
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.94, 0.94, 0.94, 1)
@@ -21,129 +27,235 @@ C_GREEN  = (0.0, 0.408, 0.278, 1)
 C_RED    = (0.808, 0.067, 0.149, 1)
 C_TEXT   = (0.1, 0.1, 0.1, 1)
 C_GRAY   = (0.5, 0.5, 0.5, 1)
-C_LIGHT  = (0.97, 0.97, 0.97, 1)
+C_LGRAY  = (0.88, 0.88, 0.88, 1)
+C_DRAWER = (0.98, 0.98, 0.98, 1)
+
+INSTITUTIONS = [
+    'Policía Municipal', 'Policía Estatal', 'Guardia Nacional',
+    'Policía Ministerial', 'Policía Federal Ministerial',
+    'Policía Mando Único', 'Otra autoridad',
+]
 
 MODULES = [
-    {'title': 'IPH · Delitos',       'sub': 'Informe Policial\nHomologado', 'screen': 'iph',  'active': True},
-    {'title': 'IPH · Accidentes',    'sub': 'En desarrollo',                'screen': None,   'active': False},
-    {'title': 'Actas Admin.',         'sub': 'En desarrollo',                'screen': None,   'active': False},
-    {'title': 'Partes Diarios',       'sub': 'En desarrollo',                'screen': None,   'active': False},
-    {'title': 'Estadísticas',         'sub': 'En desarrollo',                'screen': None,   'active': False},
-    {'title': 'Directorio',           'sub': 'En desarrollo',                'screen': None,   'active': False},
+    {'title': 'IPH\nDelitos',      'sub': 'Informe Policial\nHomologado', 'screen': 'iph',  'active': True},
+    {'title': 'IPH\nAccidentes',   'sub': 'En desarrollo',                'screen': None,   'active': False},
+    {'title': 'Actas\nAdmin.',      'sub': 'En desarrollo',                'screen': None,   'active': False},
+    {'title': 'Partes\nDiarios',    'sub': 'En desarrollo',                'screen': None,   'active': False},
+    {'title': 'Estadísticas',       'sub': 'En desarrollo',                'screen': None,   'active': False},
+    {'title': 'Directorio',         'sub': 'En desarrollo',                'screen': None,   'active': False},
 ]
 
 
-class ModuleCard(Button):
-    def __init__(self, title, sub, active, target, mgr_getter, **kwargs):
-        super().__init__(**kwargs)
-        self.background_color = (0, 0, 0, 0)
-        self._target = target
-        self._mgr_getter = mgr_getter
+# ── Tarjeta de módulo ─────────────────────────────────────────────────────────
 
+class ModuleCard(BoxLayout):
+    def __init__(self, title, sub, active, target, mgr_getter, **kwargs):
+        super().__init__(orientation='vertical', padding=dp(12), spacing=dp(4), **kwargs)
+        self._target = target
+        self._mgr = mgr_getter
+        self._active = active
+
+        radius = dp(12)
         with self.canvas.before:
-            Color(*C_WHITE if active else C_LIGHT)
-            self._bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(8)])
+            Color(*(C_WHITE if active else (0.95, 0.95, 0.95, 1)))
+            self._bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[radius])
             if active:
                 Color(*C_GREEN)
-                self._border = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(8)])
+                self._border = RoundedRectangle(
+                    pos=(self.x + 0, self.y + 0),
+                    size=(dp(4), self.height),
+                    radius=[radius, 0, 0, radius],
+                )
         self.bind(pos=self._upd, size=self._upd)
 
-        inner = BoxLayout(orientation='vertical', padding=dp(10), spacing=dp(4))
-
         t = Label(
-            text=title, font_size=dp(13), bold=True,
+            text=title, font_size=dp(14), bold=active,
             color=C_GREEN if active else C_GRAY,
-            size_hint_y=None, height=dp(38),
             halign='center', valign='middle',
+            size_hint_y=0.5,
         )
         t.bind(size=t.setter('text_size'))
 
         s = Label(
-            text=sub, font_size=dp(10),
+            text=sub, font_size=dp(11),
             color=C_TEXT if active else C_GRAY,
             halign='center', valign='top',
+            size_hint_y=0.5,
         )
         s.bind(size=s.setter('text_size'))
 
-        inner.add_widget(t)
-        inner.add_widget(s)
-        self.add_widget(inner)
+        self.add_widget(t)
+        self.add_widget(s)
 
         if active and target:
-            self.bind(on_press=self._go)
+            btn_overlay = Button(
+                background_color=(0, 0, 0, 0),
+                background_normal='', background_down='',
+                pos=self.pos, size=self.size, size_hint=(None, None),
+            )
+            btn_overlay.bind(on_press=lambda x: self._go())
+            self.bind(pos=lambda w, v: setattr(btn_overlay, 'pos', v),
+                      size=lambda w, v: setattr(btn_overlay, 'size', v))
+            self.add_widget(btn_overlay)
 
     def _upd(self, *a):
         self._bg.pos = self.pos
         self._bg.size = self.size
         if hasattr(self, '_border'):
-            # thin green border
-            pass
+            self._border.pos = (self.x, self.y)
+            self._border.size = (dp(4), self.height)
 
-    def _go(self, *a):
-        mgr = self._mgr_getter()
+    def _go(self):
+        mgr = self._mgr()
         if mgr:
             mgr.current = self._target
 
 
-class HomeScreen(Screen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._build_ui()
+# ── Drawer (menú hamburguesa) ─────────────────────────────────────────────────
 
-    def _build_ui(self):
+class DrawerMenu(BoxLayout):
+    def __init__(self, close_cb, logout_cb, profile_cb, **kwargs):
+        super().__init__(orientation='vertical', **kwargs)
+        self.size_hint = (None, 1)
+        self.width = dp(260)
+        self._close_cb = close_cb
+
         with self.canvas.before:
-            Color(*C_BG)
+            Color(*C_DRAWER)
             self._bg = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=lambda w, v: setattr(self._bg, 'pos', v),
                   size=lambda w, v: setattr(self._bg, 'size', v))
 
-        outer = BoxLayout(orientation='vertical')
-
-        # Header
-        hdr = BoxLayout(
-            orientation='horizontal', size_hint_y=None, height=dp(72),
-            padding=[dp(16), dp(10)], spacing=dp(10),
-        )
+        # Header del drawer
+        hdr = BoxLayout(size_hint_y=None, height=dp(130), padding=dp(16), spacing=dp(6),
+                        orientation='vertical')
         with hdr.canvas.before:
             Color(*C_GREEN)
             hdr._bg = Rectangle(pos=hdr.pos, size=hdr.size)
         hdr.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
                  size=lambda w, v: setattr(w._bg, 'size', v))
 
-        info = BoxLayout(orientation='vertical')
-        self.lbl_name = Label(
-            text='Bienvenido', font_size=dp(15), bold=True,
-            color=C_WHITE, halign='left',
+        self.lbl_nombre = Label(text='', font_size=dp(16), bold=True, color=C_WHITE,
+                                 halign='left', size_hint_y=None, height=dp(26))
+        self.lbl_nombre.bind(size=self.lbl_nombre.setter('text_size'))
+        self.lbl_cargo = Label(text='', font_size=dp(11), color=(0.85, 1, 0.85, 1),
+                                halign='left', size_hint_y=None, height=dp(20))
+        self.lbl_cargo.bind(size=self.lbl_cargo.setter('text_size'))
+        self.lbl_inst = Label(text='', font_size=dp(11), color=(0.8, 1, 0.8, 1),
+                               halign='left', size_hint_y=None, height=dp(20))
+        self.lbl_inst.bind(size=self.lbl_inst.setter('text_size'))
+
+        hdr.add_widget(Label(size_hint_y=None, height=dp(8)))
+        hdr.add_widget(self.lbl_nombre)
+        hdr.add_widget(self.lbl_cargo)
+        hdr.add_widget(self.lbl_inst)
+        self.add_widget(hdr)
+
+        # Items del menú
+        items = [
+            ('  👤  Mi Perfil',      profile_cb, C_TEXT),
+            ('  🚪  Cerrar sesión',  logout_cb,  C_RED),
+        ]
+        for text, cb, color in items:
+            sep = BoxLayout(size_hint_y=None, height=dp(1))
+            with sep.canvas.before:
+                Color(*C_LGRAY)
+                sep._bg = Rectangle(pos=sep.pos, size=sep.size)
+            sep.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+                     size=lambda w, v: setattr(w._bg, 'size', v))
+            self.add_widget(sep)
+
+            btn = Button(
+                text=text, size_hint_y=None, height=dp(56),
+                background_color=(0, 0, 0, 0),
+                background_normal='', background_down='',
+                color=color, font_size=dp(15), halign='left',
+            )
+            btn.bind(size=btn.setter('text_size'))
+            btn.bind(on_press=lambda x, f=cb: (close_cb(), f()))
+            self.add_widget(btn)
+
+        self.add_widget(Label())  # spacer
+
+    def refresh_user(self):
+        user = api_client.get_user()
+        if user:
+            nombre = f"{user.get('nombre', '')} {user.get('primer_apellido', '')}".strip()
+            self.lbl_nombre.text = nombre
+            self.lbl_cargo.text = user.get('cargo_grado', '')
+            self.lbl_inst.text = user.get('institucion', '')
+
+    def open(self):
+        self.refresh_user()
+        Animation(x=0, duration=0.22, t='out_cubic').start(self)
+
+    def close(self):
+        Animation(x=-self.width, duration=0.18, t='in_cubic').start(self)
+
+
+# ── Pantalla principal ────────────────────────────────────────────────────────
+
+class HomeScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._drawer_open = False
+        self._build_ui()
+
+    def _build_ui(self):
+        root = FloatLayout()
+
+        # Fondo
+        with root.canvas.before:
+            Color(*C_BG)
+            root._bg = Rectangle(pos=root.pos, size=root.size)
+        root.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+                  size=lambda w, v: setattr(w._bg, 'size', v))
+
+        # ── Contenido principal ──
+        main = BoxLayout(orientation='vertical', size_hint=(1, 1))
+
+        # Header
+        hdr = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(60),
+                        padding=[dp(8), dp(8)], spacing=dp(8))
+        with hdr.canvas.before:
+            Color(*C_GREEN)
+            hdr._bg = Rectangle(pos=hdr.pos, size=hdr.size)
+        hdr.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+                 size=lambda w, v: setattr(w._bg, 'size', v))
+
+        # Botón hamburguesa
+        btn_ham = Button(
+            text='☰', font_size=dp(22), size_hint_x=None, width=dp(48),
+            background_color=(0, 0, 0, 0),
+            background_normal='', background_down='',
+            color=C_WHITE,
         )
+        btn_ham.bind(on_press=lambda x: self._toggle_drawer())
+
+        title_box = BoxLayout(orientation='vertical')
+        self.lbl_name = Label(text='Sistema IPH', font_size=dp(16), bold=True,
+                               color=C_WHITE, halign='left')
         self.lbl_name.bind(size=self.lbl_name.setter('text_size'))
-        self.lbl_role = Label(
-            text='', font_size=dp(11), color=(0.85, 1, 0.85, 1), halign='left',
-        )
-        self.lbl_role.bind(size=self.lbl_role.setter('text_size'))
-        info.add_widget(self.lbl_name)
-        info.add_widget(self.lbl_role)
+        self.lbl_sub = Label(text='Culiacán, Sinaloa', font_size=dp(11),
+                              color=(0.85, 1, 0.85, 1), halign='left')
+        self.lbl_sub.bind(size=self.lbl_sub.setter('text_size'))
+        title_box.add_widget(self.lbl_name)
+        title_box.add_widget(self.lbl_sub)
 
-        btn_out = Button(
-            text='Salir', size_hint_x=None, width=dp(56),
-            background_color=C_RED, color=C_WHITE,
-            font_size=dp(13), bold=True,
-        )
-        btn_out.bind(on_press=self._logout)
+        hdr.add_widget(btn_ham)
+        hdr.add_widget(title_box)
+        main.add_widget(hdr)
 
-        hdr.add_widget(info)
-        hdr.add_widget(btn_out)
-        outer.add_widget(hdr)
-
-        # Divider label
-        outer.add_widget(Label(
-            text='MÓDULOS', font_size=dp(11), bold=True,
-            color=C_GRAY, size_hint_y=None, height=dp(32),
+        # Subtítulo módulos
+        main.add_widget(Label(
+            text='MÓDULOS DISPONIBLES', font_size=dp(10), bold=True,
+            color=C_GRAY, size_hint_y=None, height=dp(28),
         ))
 
         # Grid de módulos
         scroll = ScrollView()
         grid = GridLayout(
-            cols=2, padding=[dp(12), dp(4)], spacing=dp(10),
+            cols=2, padding=[dp(14), dp(6)], spacing=dp(12),
             size_hint_y=None,
         )
         grid.bind(minimum_height=grid.setter('height'))
@@ -153,30 +265,145 @@ class HomeScreen(Screen):
                 title=m['title'], sub=m['sub'],
                 active=m['active'], target=m['screen'],
                 mgr_getter=lambda: self.manager,
-                size_hint_y=None, height=dp(100),
+                size_hint_y=None, height=dp(110),
             )
             grid.add_widget(card)
 
         scroll.add_widget(grid)
-        outer.add_widget(scroll)
-        self.add_widget(outer)
+        main.add_widget(scroll)
+        root.add_widget(main)
+
+        # ── Overlay oscuro (cierra el drawer al tocar) ──
+        self._overlay = Button(
+            size_hint=(1, 1),
+            background_color=(0, 0, 0, 0.45),
+            background_normal='', background_down='',
+            opacity=0,
+        )
+        self._overlay.bind(on_press=lambda x: self._close_drawer())
+        root.add_widget(self._overlay)
+
+        # ── Drawer ──
+        self._drawer = DrawerMenu(
+            close_cb=self._close_drawer,
+            logout_cb=self._do_logout,
+            profile_cb=self._show_profile,
+            pos=(-dp(260), 0),
+        )
+        root.add_widget(self._drawer)
+
+        self.add_widget(root)
+
+    # ── Drawer ──────────────────────────────────────────────────────────────
+
+    def _toggle_drawer(self):
+        if self._drawer_open:
+            self._close_drawer()
+        else:
+            self._open_drawer()
+
+    def _open_drawer(self):
+        self._drawer_open = True
+        self._overlay.opacity = 1
+        self._drawer.open()
+
+    def _close_drawer(self):
+        self._drawer_open = False
+        self._overlay.opacity = 0
+        self._drawer.close()
+
+    # ── Perfil ───────────────────────────────────────────────────────────────
+
+    def _show_profile(self):
+        user = api_client.get_user() or {}
+
+        content = BoxLayout(orientation='vertical', padding=dp(14), spacing=dp(6))
+        scroll = ScrollView(size_hint_y=None, height=dp(380))
+        form = BoxLayout(orientation='vertical', spacing=dp(4), size_hint_y=None)
+        form.bind(minimum_height=form.setter('height'))
+
+        def _lbl(t):
+            l = Label(text=t, color=C_GRAY, font_size=dp(11),
+                      size_hint_y=None, height=dp(18), halign='left')
+            l.bind(size=l.setter('text_size'))
+            return l
+
+        def _inp(hint, val=''):
+            return TextInput(
+                hint_text=hint, text=val, multiline=False,
+                size_hint_y=None, height=dp(42),
+                background_color=C_WHITE, foreground_color=C_TEXT,
+                padding=[dp(10), dp(10)], font_size=dp(13),
+            )
+
+        fields = [
+            ('Primer apellido', 'primer_apellido'), ('Segundo apellido', 'segundo_apellido'),
+            ('Nombre(s)', 'nombre'), ('Adscripción', 'adscripcion'),
+            ('Cargo / Grado', 'cargo_grado'), ('No. Placa/Empleado', 'no_placa'),
+        ]
+        inputs = {}
+        for label, key in fields:
+            form.add_widget(_lbl(label))
+            inp = _inp(label, user.get(key, ''))
+            inputs[key] = inp
+            form.add_widget(inp)
+
+        form.add_widget(_lbl('Institución'))
+        spinner = Spinner(
+            text=user.get('institucion', 'Policía Municipal'),
+            values=INSTITUTIONS,
+            size_hint_y=None, height=dp(42),
+            background_color=(0.95, 0.95, 0.95, 1), color=C_TEXT, font_size=dp(13),
+        )
+        form.add_widget(spinner)
+        scroll.add_widget(form)
+        content.add_widget(scroll)
+
+        lbl_err = Label(text='', color=C_RED, font_size=dp(12),
+                        size_hint_y=None, height=dp(24))
+        content.add_widget(lbl_err)
+
+        btn_save = rounded_btn('GUARDAR', height=dp(46))
+        btn_cancel = rounded_btn('Cancelar', bg=(0.7, 0.7, 0.7, 1), height=dp(40))
+        content.add_widget(btn_save)
+        content.add_widget(btn_cancel)
+
+        pop = Popup(title='Mi Perfil', content=content,
+                    size_hint=(0.92, 0.88))
+
+        def save(*a):
+            data = {k: v.text.strip() for k, v in inputs.items()}
+            data['institucion'] = spinner.text
+            lbl_err.text = 'Guardando...'
+            api_client.update_profile(data,
+                on_success=lambda u: Clock.schedule_once(lambda dt: (
+                    setattr(lbl_err, 'text', 'Guardado correctamente'),
+                    self.refresh_user(),
+                    pop.dismiss(),
+                ), 0),
+                on_error=lambda e: Clock.schedule_once(
+                    lambda dt: setattr(lbl_err, 'text', e), 0),
+            )
+
+        btn_save.bind(on_press=save)
+        btn_cancel.bind(on_press=pop.dismiss)
+        pop.open()
+
+    # ── Misc ─────────────────────────────────────────────────────────────────
 
     def refresh_user(self):
         user = api_client.get_user()
         if user:
             nombre = f"{user.get('nombre', '')} {user.get('primer_apellido', '')}".strip()
-            self.lbl_name.text = f"Bienvenido, {nombre}"
+            self.lbl_name.text = nombre or 'Sistema IPH'
             cargo = user.get('cargo_grado', '')
             inst = user.get('institucion', '')
-            self.lbl_role.text = f"{cargo} · {inst}".strip(' · ')
+            self.lbl_sub.text = f"{cargo} · {inst}".strip(' · ') or 'Culiacán, Sinaloa'
 
     def on_enter(self):
         self.refresh_user()
-        # Actualizar manager ref en cards
-        for card in self.walk():
-            if isinstance(card, ModuleCard):
-                card._mgr_getter = lambda: self.manager
+        self._close_drawer()
 
-    def _logout(self, *a):
+    def _do_logout(self):
         api_client.clear_session()
         self.manager.current = 'login'

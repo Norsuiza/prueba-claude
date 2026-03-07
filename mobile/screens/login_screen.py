@@ -14,6 +14,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
+from mobile.utils.widgets import rounded_btn, RoundedButton
 from mobile.config import get_server_url, save_server_url
 
 # Colores Gobierno de México
@@ -105,17 +106,11 @@ class LoginScreen(Screen):
             font_size=dp(12),
         )
 
-        btn_login = Button(
-            text='ENTRAR', size_hint_y=None, height=dp(48),
-            background_color=C_GREEN, color=C_WHITE,
-            font_size=dp(15), bold=True,
-        )
-        btn_login.bind(on_press=self.do_login)
+        btn_login = rounded_btn('ENTRAR', height=dp(48), on_press=self.do_login)
 
-        btn_reg = Button(
-            text='Crear cuenta nueva', size_hint_y=None, height=dp(36),
-            background_color=(0, 0, 0, 0), color=C_GREEN,
-            font_size=dp(13),
+        btn_reg = rounded_btn(
+            'Crear cuenta nueva', bg=(0, 0, 0, 0),
+            color=C_GREEN, height=dp(36),
         )
         btn_reg.bind(on_press=lambda x: setattr(self.manager, 'current', 'register'))
 

@@ -104,6 +104,24 @@ def register(user_data, on_success, on_error):
     threading.Thread(target=_run, daemon=True).start()
 
 
+def update_profile(data, on_success, on_error):
+    def _run():
+        try:
+            url = f'{_get_base_url()}/api/me'
+            resp = requests.put(url, json=data, headers=_headers(), timeout=10)
+            result = resp.json()
+            if resp.status_code == 200:
+                save_session(get_token(), result)
+                on_success(result)
+            else:
+                on_error(result.get('error', 'Error al guardar'))
+        except requests.exceptions.ConnectionError:
+            on_error('Sin conexión al servidor')
+        except Exception as e:
+            on_error(str(e))
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def check_auth(on_success, on_error):
     def _run():
         try:
