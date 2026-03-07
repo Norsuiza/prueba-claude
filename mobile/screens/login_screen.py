@@ -10,7 +10,9 @@ from kivy.metrics import dp
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
 from mobile.config import get_server_url, save_server_url

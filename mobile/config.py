@@ -3,7 +3,7 @@ import json
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'server_config.json')
 
-DEFAULT_SERVER_URL = 'http://10.0.2.2:5000'  # emulador Android → localhost PC
+DEFAULT_SERVER_URL = 'http://localhost:5001'  # PC local; en Android usa la IP de tu PC o ngrok
 
 
 def get_server_url():

@@ -16,7 +16,9 @@ from kivy.clock import Clock
 from kivy.metrics import dp
 
 import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from mobile.utils import api_client
 from mobile.utils.pdf_generator import generate_iph_pdf
@@ -380,9 +382,10 @@ class IPHScreen(Screen):
             try:
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 filename = f'IPH_{timestamp}.pdf'
-                from kivy.app import App
-                app = App.get_running_app()
-                out_dir = app.user_data_dir
+                # Guardar en carpeta Documentos/IPH (o Escritorio en Android)
+                home = os.path.expanduser('~')
+                out_dir = os.path.join(home, 'Documents', 'IPH_Reportes')
+                os.makedirs(out_dir, exist_ok=True)
                 output_path = os.path.join(out_dir, filename)
                 generate_iph_pdf(self.form_data, user, output_path)
                 Clock.schedule_once(lambda dt: self._on_pdf_done(output_path), 0)

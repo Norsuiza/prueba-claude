@@ -1,8 +1,10 @@
 import os
 import sys
 
-# Ensure mobile package is importable
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Agregar la raíz del proyecto (padre de mobile/) al path
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
