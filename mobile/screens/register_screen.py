@@ -16,11 +16,13 @@ if ROOT not in sys.path:
 
 from mobile.utils import api_client
 
-C_DARK = (0.102, 0.102, 0.180, 1)
-C_CARD = (0.086, 0.129, 0.243, 1)
-C_GOLD = (0.910, 0.725, 0.137, 1)
-C_WHITE = (0.918, 0.918, 0.918, 1)
-C_RED = (0.85, 0.2, 0.2, 1)
+C_WHITE  = (1, 1, 1, 1)
+C_BG     = (0.96, 0.96, 0.96, 1)
+C_GREEN  = (0.0, 0.408, 0.278, 1)
+C_RED    = (0.808, 0.067, 0.149, 1)
+C_TEXT   = (0.1, 0.1, 0.1, 1)
+C_GRAY   = (0.45, 0.45, 0.45, 1)
+C_BORDER = (0.82, 0.82, 0.82, 1)
 
 INSTITUTIONS = [
     'Policía Municipal',
@@ -33,20 +35,21 @@ INSTITUTIONS = [
 ]
 
 
-def _input(hint, password=False):
+def _inp(hint, password=False):
     return TextInput(
         hint_text=hint, multiline=False, password=password,
         size_hint_y=None, height=dp(44),
-        background_color=C_DARK, foreground_color=C_WHITE,
-        hint_text_color=(0.5, 0.5, 0.5, 1), padding=[dp(10), dp(10)],
-        font_size=dp(15),
+        background_color=C_WHITE, foreground_color=C_TEXT,
+        hint_text_color=(0.6, 0.6, 0.6, 1),
+        padding=[dp(10), dp(10)], font_size=dp(14),
+        cursor_color=C_GREEN,
     )
 
 
-def _label(text):
+def _lbl(text):
     return Label(
-        text=text, color=(0.7, 0.7, 0.7, 1),
-        size_hint_y=None, height=dp(22), font_size=dp(12),
+        text=text, color=C_GRAY,
+        size_hint_y=None, height=dp(20), font_size=dp(11),
         halign='left', text_size=(None, None),
     )
 
@@ -58,138 +61,107 @@ class RegisterScreen(Screen):
 
     def _build_ui(self):
         with self.canvas.before:
-            Color(*C_DARK)
+            Color(*C_BG)
             self._bg = Rectangle(pos=self.pos, size=self.size)
-        self.bind(pos=self._update_bg, size=self._update_bg)
+        self.bind(pos=lambda w, v: setattr(self._bg, 'pos', v),
+                  size=lambda w, v: setattr(self._bg, 'size', v))
 
         outer = BoxLayout(orientation='vertical')
 
         # Header
-        header = BoxLayout(
+        hdr = BoxLayout(
             orientation='horizontal', size_hint_y=None, height=dp(56),
-            padding=[dp(10), dp(8)], spacing=dp(8),
+            padding=[dp(8), dp(8)], spacing=dp(8),
         )
-        with header.canvas.before:
-            Color(*C_CARD)
-            header._bg = Rectangle(pos=header.pos, size=header.size)
-        header.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
-                    size=lambda w, v: setattr(w._bg, 'size', v))
+        with hdr.canvas.before:
+            Color(*C_GREEN)
+            hdr._bg = Rectangle(pos=hdr.pos, size=hdr.size)
+        hdr.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
+                 size=lambda w, v: setattr(w._bg, 'size', v))
 
         btn_back = Button(
-            text='← Volver', size_hint_x=None, width=dp(90),
-            background_color=(0, 0, 0, 0), color=C_GOLD, font_size=dp(14),
+            text='← Volver', size_hint_x=None, width=dp(80),
+            background_color=(0, 0, 0, 0), color=C_WHITE, font_size=dp(13),
         )
         btn_back.bind(on_press=lambda x: setattr(self.manager, 'current', 'login'))
-        header.add_widget(btn_back)
-        header.add_widget(Label(
-            text='Crear Cuenta', font_size=dp(18), bold=True, color=C_WHITE,
-        ))
-        outer.add_widget(header)
+        hdr.add_widget(btn_back)
+        hdr.add_widget(Label(text='Crear Cuenta', font_size=dp(17), bold=True, color=C_WHITE))
+        outer.add_widget(hdr)
 
-        # Scrollable form
         scroll = ScrollView()
         form = BoxLayout(
-            orientation='vertical', padding=dp(20), spacing=dp(6),
-            size_hint_y=None,
+            orientation='vertical', padding=[dp(20), dp(16)],
+            spacing=dp(4), size_hint_y=None,
         )
         form.bind(minimum_height=form.setter('height'))
 
-        form.add_widget(_label('Nombre de usuario *'))
-        self.f_username = _input('usuario123')
-        form.add_widget(self.f_username)
+        fields = [
+            ('Nombre de usuario *', 'f_username', False),
+            ('Contraseña *', 'f_password', True),
+            ('Primer apellido *', 'f_ap1', False),
+            ('Segundo apellido', 'f_ap2', False),
+            ('Nombre(s) *', 'f_nombre', False),
+            ('Adscripción', 'f_adsc', False),
+            ('Cargo / Grado', 'f_cargo', False),
+            ('No. de Placa / Empleado', 'f_placa', False),
+        ]
+        for label, attr, pw in fields:
+            form.add_widget(_lbl(label))
+            inp = _inp(label.replace(' *', ''), password=pw)
+            setattr(self, attr, inp)
+            form.add_widget(inp)
 
-        form.add_widget(_label('Contraseña *'))
-        self.f_password = _input('Contraseña', password=True)
-        form.add_widget(self.f_password)
-
-        form.add_widget(_label('Primer apellido *'))
-        self.f_ap1 = _input('Primer apellido')
-        form.add_widget(self.f_ap1)
-
-        form.add_widget(_label('Segundo apellido'))
-        self.f_ap2 = _input('Segundo apellido')
-        form.add_widget(self.f_ap2)
-
-        form.add_widget(_label('Nombre(s) *'))
-        self.f_nombre = _input('Nombre(s)')
-        form.add_widget(self.f_nombre)
-
-        form.add_widget(_label('Institución'))
+        form.add_widget(_lbl('Institución'))
         self.f_inst = Spinner(
-            text='Policía Municipal',
-            values=INSTITUTIONS,
+            text='Policía Municipal', values=INSTITUTIONS,
             size_hint_y=None, height=dp(44),
-            background_color=C_DARK, color=C_WHITE,
-            font_size=dp(15),
+            background_color=C_WHITE, color=C_TEXT, font_size=dp(14),
         )
         form.add_widget(self.f_inst)
 
-        form.add_widget(_label('Adscripción'))
-        self.f_adsc = _input('Ej: Dirección de Seguridad Pública')
-        form.add_widget(self.f_adsc)
-
-        form.add_widget(_label('Cargo / Grado'))
-        self.f_cargo = _input('Ej: Oficial de Tránsito')
-        form.add_widget(self.f_cargo)
-
-        form.add_widget(_label('No. de Placa / Empleado'))
-        self.f_placa = _input('Ej: 0042')
-        form.add_widget(self.f_placa)
-
         self.lbl_error = Label(
-            text='', color=C_RED, size_hint_y=None, height=dp(36),
-            font_size=dp(13),
+            text='', color=C_RED, size_hint_y=None, height=dp(30), font_size=dp(12),
         )
         form.add_widget(self.lbl_error)
 
-        btn_reg = Button(
+        btn = Button(
             text='CREAR CUENTA', size_hint_y=None, height=dp(50),
-            background_color=C_GOLD, color=(0.1, 0.1, 0.1, 1),
-            font_size=dp(16), bold=True,
+            background_color=C_GREEN, color=C_WHITE, font_size=dp(15), bold=True,
         )
-        btn_reg.bind(on_press=self.do_register)
-        form.add_widget(btn_reg)
+        btn.bind(on_press=self.do_register)
+        form.add_widget(btn)
         form.add_widget(Label(size_hint_y=None, height=dp(20)))
 
         scroll.add_widget(form)
         outer.add_widget(scroll)
         self.add_widget(outer)
 
-    def _update_bg(self, *args):
-        self._bg.pos = self.pos
-        self._bg.size = self.size
-
-    def do_register(self, *args):
-        username = self.f_username.text.strip()
-        password = self.f_password.text.strip()
-        nombre = self.f_nombre.text.strip()
-        ap1 = self.f_ap1.text.strip()
-
-        if not username or not password or not nombre or not ap1:
+    def do_register(self, *a):
+        u = self.f_username.text.strip()
+        p = self.f_password.text.strip()
+        n = self.f_nombre.text.strip()
+        a1 = self.f_ap1.text.strip()
+        if not u or not p or not n or not a1:
             self.lbl_error.text = 'Usuario, contraseña, nombre y primer apellido son obligatorios'
             return
-
         self.lbl_error.text = 'Registrando...'
-        data = {
-            'username': username,
-            'password': password,
-            'primer_apellido': ap1,
+        api_client.register({
+            'username': u, 'password': p,
+            'primer_apellido': a1,
             'segundo_apellido': self.f_ap2.text.strip(),
-            'nombre': nombre,
+            'nombre': n,
             'institucion': self.f_inst.text,
             'adscripcion': self.f_adsc.text.strip(),
             'cargo_grado': self.f_cargo.text.strip(),
             'no_placa': self.f_placa.text.strip(),
-        }
-        api_client.register(data, on_success=self._on_success, on_error=self._on_error)
+        }, on_success=self._ok, on_error=self._err)
 
-    def _on_success(self, user):
+    def _ok(self, user):
         Clock.schedule_once(lambda dt: self._go_home(), 0)
 
-    def _on_error(self, msg):
+    def _err(self, msg):
         Clock.schedule_once(lambda dt: setattr(self.lbl_error, 'text', msg), 0)
 
     def _go_home(self):
-        home = self.manager.get_screen('home')
-        home.refresh_user()
+        self.manager.get_screen('home').refresh_user()
         self.manager.current = 'home'
