@@ -64,7 +64,7 @@ def _headers():
 
 
 def _get_base_url():
-    from mobile.config import get_server_url
+    from config import get_server_url
     return get_server_url()
 
 

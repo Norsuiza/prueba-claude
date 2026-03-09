@@ -8,14 +8,9 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.clock import Clock
 from kivy.metrics import dp
 
-import sys, os
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
-
-from mobile.utils import api_client
-from mobile.utils.widgets import rounded_btn, RoundedButton, footer_bar
-from mobile.config import get_server_url, save_server_url
+from utils import api_client
+from utils.widgets import rounded_btn, RoundedButton, footer_bar
+from config import get_server_url, save_server_url
 
 # Colores Gobierno de México
 C_WHITE   = (1, 1, 1, 1)

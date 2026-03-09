@@ -14,15 +14,10 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.clock import Clock
 from kivy.metrics import dp
 
-import sys
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
-
-from mobile.utils import api_client
-from mobile.utils.pdf_generator import generate_iph_pdf
-from mobile.utils.widgets import RoundedButton, rounded_btn, popup_content
-from mobile.data.iph_questions import get_question_list
+from utils import api_client
+from utils.pdf_generator import generate_iph_pdf
+from utils.widgets import RoundedButton, rounded_btn, popup_content
+from data.iph_questions import get_question_list
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.96, 0.96, 0.96, 1)

@@ -13,13 +13,8 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.clock import Clock
 from kivy.metrics import dp
 
-import sys, os
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
-
-from mobile.utils import api_client
-from mobile.utils.widgets import RoundedButton, rounded_btn, HamburgerButton, footer_bar, popup_content
+from utils import api_client
+from utils.widgets import RoundedButton, rounded_btn, HamburgerButton, footer_bar, popup_content
 
 C_WHITE  = (1, 1, 1, 1)
 C_BG     = (0.94, 0.94, 0.94, 1)

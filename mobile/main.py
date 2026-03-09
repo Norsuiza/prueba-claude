@@ -1,24 +1,26 @@
 import os
 import sys
 
-# Agregar la raíz del proyecto (padre de mobile/) al path
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+# Asegurar que mobile/ esté en el path (funciona en Android y desktop)
+MOBILE_DIR = os.path.dirname(os.path.abspath(__file__))
+if MOBILE_DIR not in sys.path:
+    sys.path.insert(0, MOBILE_DIR)
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.utils import platform
 
-# Optional: set window size for desktop testing
-Window.size = (400, 700)
+# Solo fijar tamaño en desktop, no en Android
+if platform != 'android':
+    Window.size = (400, 700)
 
-from mobile.screens.login_screen import LoginScreen
-from mobile.screens.register_screen import RegisterScreen
-from mobile.screens.home_screen import HomeScreen
-from mobile.screens.iph_screen import IPHScreen
-from mobile.utils import api_client
+from screens.login_screen import LoginScreen
+from screens.register_screen import RegisterScreen
+from screens.home_screen import HomeScreen
+from screens.iph_screen import IPHScreen
+from utils import api_client
 
 
 class IPHApp(App):
