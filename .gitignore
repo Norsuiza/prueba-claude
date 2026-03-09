@@ -18,3 +18,11 @@ bin/
 # OS
 .DS_Store
 Thumbs.db
+
+# Tokens y credenciales locales
+mobile/auth_token.json
+mobile/server_config.json
+
+# Claude interno
+.claude/settings.local.json
+.claude/worktrees/
