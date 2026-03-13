@@ -1,6 +1,10 @@
 import os
 import threading
+import calendar as _cal
 from datetime import datetime
+
+_MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -223,8 +227,12 @@ class IPHScreen(Screen):
     def _render_input(self, q):
         self.input_area.clear_widgets()
         t = q.get('tipo', 'text')
-        if t in ('text', 'date', 'time'):
+        if t == 'text':
             self._ui_text(q)
+        elif t == 'date':
+            self._ui_date(q)
+        elif t == 'time':
+            self._ui_time(q)
         elif t == 'long_text':
             self._ui_longtext(q)
         elif t == 'yes_no':
@@ -235,7 +243,7 @@ class IPHScreen(Screen):
             self._ui_multiselect(q)
 
     def _ui_text(self, q):
-        hint = {'date': 'DD/MM/AAAA', 'time': 'HH:MM'}.get(q['tipo'], '')
+        hint = ''
         prefill = ''
         if q.get('prefill'):
             u = api_client.get_user()
@@ -254,6 +262,146 @@ class IPHScreen(Screen):
         self.input_area.add_widget(ti)
         self.input_area.add_widget(btn)
         ti.focus = True
+
+    def _ui_time(self, q):
+        now = datetime.now()
+        state = {'h': now.hour, 'm': now.minute}
+
+        lbl = Label(
+            text=f'{state["h"]:02d} : {state["m"]:02d}',
+            font_size=dp(38), bold=True, color=C_GREEN,
+            size_hint_y=None, height=dp(54), halign='center',
+        )
+        lbl.bind(size=lbl.setter('text_size'))
+
+        def refresh():
+            lbl.text = f'{state["h"]:02d} : {state["m"]:02d}'
+
+        row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(6))
+        for label, key, delta in [('-1h', 'h', -1), ('+1h', 'h', 1),
+                                   ('-1m', 'm', -1), ('+1m', 'm', 1)]:
+            b = RoundedButton(text=label, bg_color=C_GREEN, text_color=C_WHITE,
+                              radius=dp(8), size_hint_y=None, height=dp(46),
+                              font_size=dp(14))
+            def _tap(x, k=key, d=delta):
+                if k == 'h':
+                    state['h'] = (state['h'] + d) % 24
+                else:
+                    state['m'] = (state['m'] + d) % 60
+                refresh()
+            b.bind(on_press=_tap)
+            row.add_widget(b)
+
+        self.input_area.add_widget(lbl)
+        self.input_area.add_widget(row)
+        self.input_area.add_widget(
+            rounded_btn('Siguiente →', height=dp(46),
+                        on_press=lambda x: self._submit_text(
+                            q, f'{state["h"]:02d}:{state["m"]:02d}'))
+        )
+
+    def _ui_date(self, q):
+        now = datetime.now()
+        state = {'year': now.year, 'month': now.month, 'day': now.day}
+
+        def fmt():
+            return f'{state["day"]:02d}/{state["month"]:02d}/{state["year"]}'
+
+        lbl = Label(
+            text=fmt(), font_size=dp(32), bold=True, color=C_GREEN,
+            size_hint_y=None, height=dp(50), halign='center',
+        )
+        lbl.bind(size=lbl.setter('text_size'))
+
+        btn_cal = rounded_btn('Abrir calendario', height=dp(44),
+                              on_press=lambda x: self._open_calendar(state, lbl, fmt))
+        self.input_area.add_widget(lbl)
+        self.input_area.add_widget(btn_cal)
+        self.input_area.add_widget(
+            rounded_btn('Siguiente →', height=dp(46),
+                        on_press=lambda x: self._submit_text(q, fmt()))
+        )
+
+    def _open_calendar(self, state, lbl_date, fmt):
+        content = BoxLayout(orientation='vertical', spacing=dp(4), padding=[dp(4), dp(4)])
+
+        # Navegación mes/año
+        nav = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(6))
+        lbl_mes = Label(
+            text=f'{_MESES[state["month"]]} {state["year"]}',
+            font_size=dp(15), bold=True, color=C_TEXT,
+        )
+
+        pop = Popup(title='Seleccionar fecha', content=content,
+                    size_hint=(0.94, None), height=dp(390))
+
+        def rebuild():
+            lbl_mes.text = f'{_MESES[state["month"]]} {state["year"]}'
+            grid.clear_widgets()
+            for week in _cal.monthcalendar(state['year'], state['month']):
+                for day in week:
+                    if day == 0:
+                        grid.add_widget(Label())
+                    else:
+                        is_sel = (day == state['day'])
+                        b = RoundedButton(
+                            text=str(day),
+                            bg_color=C_GREEN if is_sel else (0.88, 0.88, 0.88, 1),
+                            text_color=C_WHITE if is_sel else C_TEXT,
+                            radius=dp(4), size_hint_y=None, height=dp(36),
+                            font_size=dp(13),
+                        )
+                        def _sel(x, d=day):
+                            state['day'] = d
+                            lbl_date.text = fmt()
+                            pop.dismiss()
+                        b.bind(on_press=_sel)
+                        grid.add_widget(b)
+
+        def prev_m(x):
+            if state['month'] == 1:
+                state['month'] = 12; state['year'] -= 1
+            else:
+                state['month'] -= 1
+            state['day'] = min(state['day'],
+                               _cal.monthrange(state['year'], state['month'])[1])
+            rebuild()
+
+        def next_m(x):
+            if state['month'] == 12:
+                state['month'] = 1; state['year'] += 1
+            else:
+                state['month'] += 1
+            state['day'] = min(state['day'],
+                               _cal.monthrange(state['year'], state['month'])[1])
+            rebuild()
+
+        btn_prev = RoundedButton(text='<', bg_color=C_GREEN, text_color=C_WHITE,
+                                 radius=dp(8), size_hint_x=None, width=dp(42),
+                                 size_hint_y=None, height=dp(38), font_size=dp(16))
+        btn_next = RoundedButton(text='>', bg_color=C_GREEN, text_color=C_WHITE,
+                                 radius=dp(8), size_hint_x=None, width=dp(42),
+                                 size_hint_y=None, height=dp(38), font_size=dp(16))
+        btn_prev.bind(on_press=prev_m)
+        btn_next.bind(on_press=next_m)
+        nav.add_widget(btn_prev)
+        nav.add_widget(lbl_mes)
+        nav.add_widget(btn_next)
+        content.add_widget(nav)
+
+        # Cabecera días
+        hdr = GridLayout(cols=7, size_hint_y=None, height=dp(26))
+        for d in ['L', 'M', 'X', 'J', 'V', 'S', 'D']:
+            hdr.add_widget(Label(text=d, font_size=dp(11), bold=True, color=C_GRAY))
+        content.add_widget(hdr)
+
+        # Grid días
+        grid = GridLayout(cols=7, size_hint_y=None, spacing=dp(2))
+        grid.bind(minimum_height=grid.setter('height'))
+        content.add_widget(grid)
+
+        rebuild()
+        pop.open()
 
     def _ui_longtext(self, q):
         ti = TextInput(
