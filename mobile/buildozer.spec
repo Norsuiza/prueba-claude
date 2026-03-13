@@ -15,7 +15,7 @@ android.api = 33
 android.minapi = 26
 android.ndk = 25b
 android.accept_sdk_license = True
-android.extra_manifest_application_arguments = android:requestLegacyExternalStorage="true"
+android.extra_manifest_application_arguments = extra_manifest_app_args.txt
 android.archs = arm64-v8a
 source.exclude_dirs = __pycache__, .buildozer, bin, tests
 
