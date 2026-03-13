@@ -528,8 +528,9 @@ class IPHScreen(Screen):
 
         def _run():
             try:
+                from kivy.app import App
                 ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-                out_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'IPH_Reportes')
+                out_dir = os.path.join(App.get_running_app().user_data_dir, 'IPH_Reportes')
                 os.makedirs(out_dir, exist_ok=True)
                 path = os.path.join(out_dir, f'IPH_{ts}.pdf')
                 generate_iph_pdf(self.form_data, user, path)

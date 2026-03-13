@@ -12,7 +12,7 @@ except ImportError:
     PYMUPDF_AVAILABLE = False
 
 TEMPLATE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     'formatos', 'IPH-DELITOS.pdf'
 )
 
