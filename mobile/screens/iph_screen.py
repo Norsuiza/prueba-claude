@@ -387,7 +387,8 @@ class IPHScreen(Screen):
                 generate_iph_pdf(self.form_data, user, path)
                 Clock.schedule_once(lambda dt: self._pdf_ok(path), 0)
             except Exception as e:
-                Clock.schedule_once(lambda dt: self._bot(f'Error: {e}'), 0)
+                msg = str(e)
+                Clock.schedule_once(lambda dt, m=msg: self._bot(f'Error al generar PDF: {m}'), 0)
 
         threading.Thread(target=_run, daemon=True).start()
 
