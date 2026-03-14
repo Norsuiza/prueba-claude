@@ -541,88 +541,23 @@ class IPHScreen(Screen):
         )
 
     def _pdf_ok(self, path):
-        self._bot('[b]PDF generado.[/b]')
+        self._bot(
+            f'[b]PDF generado correctamente.[/b]\n'
+            f'Archivo: {os.path.basename(path)}\n'
+            f'Guardado en la app.'
+        )
         content = popup_content()
         content.add_widget(Label(
-            text=f'Archivo:\n{os.path.basename(path)}',
+            text=f'PDF generado:\n{os.path.basename(path)}',
             color=C_TEXT, font_size=dp(13), halign='center',
-            size_hint_y=None, height=dp(54),
+            size_hint_y=None, height=dp(60),
         ))
+        btn_ok = rounded_btn('Aceptar', height=dp(44), bg_color=C_GREEN)
         pop = Popup(title='PDF Generado', content=content,
-                    size_hint=(0.85, None), height=dp(230))
-        btn_share = rounded_btn('Compartir (WhatsApp / Correo)', height=dp(44),
-                                bg_color=C_GREEN)
-        btn_ok = rounded_btn('Cerrar', height=dp(40), bg_color=(0.5, 0.5, 0.5, 1))
-        btn_share.bind(on_press=lambda x: (pop.dismiss(), self._share_pdf(path)))
+                    size_hint=(0.85, None), height=dp(200))
         btn_ok.bind(on_press=pop.dismiss)
-        content.add_widget(btn_share)
         content.add_widget(btn_ok)
         pop.open()
-
-    def _share_pdf(self, path):
-        from kivy.utils import platform
-        if platform != 'android':
-            self._bot('Compartir solo disponible en Android.')
-            return
-
-        def _do():
-            try:
-                from jnius import autoclass, cast
-                Intent = autoclass('android.content.Intent')
-                Build = autoclass('android.os.Build')
-                PythonActivity = autoclass('org.kivy.android.PythonActivity')
-                context = PythonActivity.mActivity
-                filename = os.path.basename(path)
-
-                if Build.VERSION.SDK_INT >= 29:
-                    # Android 10+ → MediaStore Downloads
-                    ContentValues = autoclass('android.content.ContentValues')
-                    MediaStore = autoclass('android.provider.MediaStore')
-                    values = ContentValues()
-                    values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
-                    values.put(MediaStore.MediaColumns.MIME_TYPE, 'application/pdf')
-                    values.put(MediaStore.MediaColumns.RELATIVE_PATH, 'Download/ChatPoli/')
-                    uri = context.getContentResolver().insert(
-                        MediaStore.Downloads.EXTERNAL_CONTENT_URI, values
-                    )
-                    pfd = context.getContentResolver().openFileDescriptor(uri, 'w')
-                    with open(path, 'rb') as src:
-                        data = src.read()
-                    with os.fdopen(pfd.getFd(), 'wb', closefd=False) as out:
-                        out.write(data)
-                    pfd.close()
-                else:
-                    # Android 8/9 → almacenamiento externo legacy
-                    Environment = autoclass('android.os.Environment')
-                    downloads = Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_DOWNLOADS
-                    ).getAbsolutePath()
-                    dest = os.path.join(downloads, 'ChatPoli', filename)
-                    os.makedirs(os.path.dirname(dest), exist_ok=True)
-                    shutil.copy2(path, dest)
-                    ContentValues = autoclass('android.content.ContentValues')
-                    MediaStore = autoclass('android.provider.MediaStore')
-                    values = ContentValues()
-                    values.put(MediaStore.Files.FileColumns.DATA, dest)
-                    values.put(MediaStore.Files.FileColumns.MIME_TYPE, 'application/pdf')
-                    uri = context.getContentResolver().insert(
-                        MediaStore.Files.getContentUri('external'), values
-                    )
-
-                intent = Intent(Intent.ACTION_SEND)
-                intent.setType('application/pdf')
-                intent.putExtra(Intent.EXTRA_STREAM,
-                                cast('android.os.Parcelable', uri))
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                context.startActivity(Intent.createChooser(intent, 'Compartir IPH'))
-                Clock.schedule_once(
-                    lambda dt: self._bot('Archivo listo para compartir.'), 0)
-            except Exception as e:
-                msg = str(e)
-                Clock.schedule_once(
-                    lambda dt, m=msg: self._bot(f'Error al compartir: {m}'), 0)
-
-        threading.Thread(target=_do, daemon=True).start()
 
     def _confirm_exit(self, *a):
         content = popup_content()
