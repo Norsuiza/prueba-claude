@@ -122,6 +122,33 @@ def update_profile(data, on_success, on_error):
     threading.Thread(target=_run, daemon=True).start()
 
 
+def generate_pdf(form_data, user_data, output_path, on_success, on_error):
+    def _run():
+        try:
+            url = f'{_get_base_url()}/api/generate_pdf'
+            resp = requests.post(
+                url,
+                json={'form_data': form_data, 'user_data': user_data},
+                headers=_headers(),
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                with open(output_path, 'wb') as f:
+                    f.write(resp.content)
+                on_success(output_path)
+            else:
+                try:
+                    error = resp.json().get('error', 'Error del servidor')
+                except Exception:
+                    error = f'Error HTTP {resp.status_code}'
+                on_error(error)
+        except requests.exceptions.ConnectionError:
+            on_error('Sin conexión al servidor')
+        except Exception as e:
+            on_error(str(e))
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def check_auth(on_success, on_error):
     def _run():
         try:

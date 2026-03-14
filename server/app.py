@@ -1,4 +1,7 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
+from io import BytesIO
+import sys
+import tempfile
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -114,6 +117,51 @@ def update_profile():
             setattr(user, field, data[field])
     db.session.commit()
     return jsonify(user_to_dict(user))
+
+
+@app.route('/api/generate_pdf', methods=['POST'])
+@jwt_required()
+def generate_pdf_endpoint():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Datos requeridos'}), 400
+
+    form_data = data.get('form_data', {})
+    user_data = data.get('user_data', {})
+
+    # Importar pdf_generator desde mobile/utils (mismo repo)
+    proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mobile_dir = os.path.join(proj_root, 'mobile')
+    if mobile_dir not in sys.path:
+        sys.path.insert(0, mobile_dir)
+
+    try:
+        from utils.pdf_generator import generate_iph_pdf
+    except ImportError as e:
+        return jsonify({'error': f'pdf_generator no disponible: {e}'}), 500
+
+    tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+    tmp_path = tmp.name
+    tmp.close()
+
+    try:
+        generate_iph_pdf(form_data, user_data, tmp_path)
+        with open(tmp_path, 'rb') as f:
+            pdf_bytes = f.read()
+        filename = f'IPH_{user_data.get("no_placa", "reporte")}.pdf'
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename,
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':

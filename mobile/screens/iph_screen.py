@@ -524,23 +524,21 @@ class IPHScreen(Screen):
         self.input_area.add_widget(btn_new)
 
     def _generate_pdf(self, *a):
-        self._bot('Generando PDF, un momento...')
+        self._bot('Generando PDF en el servidor...')
         user = api_client.get_user() or {}
 
-        def _run():
-            try:
-                from kivy.app import App
-                ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-                out_dir = os.path.join(App.get_running_app().user_data_dir, 'IPH_Reportes')
-                os.makedirs(out_dir, exist_ok=True)
-                path = os.path.join(out_dir, f'IPH_{ts}.pdf')
-                generate_iph_pdf(self.form_data, user, path)
-                Clock.schedule_once(lambda dt: self._pdf_ok(path), 0)
-            except Exception as e:
-                msg = str(e)
-                Clock.schedule_once(lambda dt, m=msg: self._bot(f'Error al generar PDF: {m}'), 0)
+        from kivy.app import App
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        out_dir = os.path.join(App.get_running_app().user_data_dir, 'IPH_Reportes')
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, f'IPH_{ts}.pdf')
 
-        threading.Thread(target=_run, daemon=True).start()
+        api_client.generate_pdf(
+            self.form_data, user, path,
+            on_success=lambda p: Clock.schedule_once(lambda dt: self._pdf_ok(p), 0),
+            on_error=lambda m: Clock.schedule_once(
+                lambda dt, msg=m: self._bot(f'Error al generar PDF: {msg}'), 0),
+        )
 
     def _pdf_ok(self, path):
         self._bot('[b]PDF generado.[/b]')

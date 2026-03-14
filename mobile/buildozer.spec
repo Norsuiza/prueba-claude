@@ -5,7 +5,7 @@ package.domain = mx.culiacan.transito
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json,pdf
 version = 1.0
-requirements = python3,kivy==2.3.0,requests,certifi,urllib3,charset-normalizer,idna,pymupdf
+requirements = python3,kivy==2.3.0,requests,certifi,urllib3,charset-normalizer,idna
 
 orientation = portrait
 fullscreen = 0
