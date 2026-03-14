@@ -43,21 +43,21 @@ jobs:
             build-essential ccache autoconf automake libtool \
             pkg-config
 
-      - name: Install buildozer, cython y python-for-android
-        run: pip install buildozer==1.5.0 cython==3.0.3 "python-for-android>=2024.1.21"
+      - name: Install buildozer and cython
+        run: pip install buildozer==1.5.0 cython==3.0.3
 
       - name: Set Java 17
         run: echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
 
-      - name: Eliminar archivos de prueba con encoding inválido (cache)
-        run: |
-          find mobile/.buildozer ~/.buildozer -name "badsyntax_pep3120.py" 2>/dev/null | while read f; do
-            sed -i '1s/^/# -*- coding: latin-1 -*-\n/' "$f" && echo "Parcheado: $f"
-          done || true
-
-      - name: Build APK
+      - name: Build APK (con retry para badsyntax)
         working-directory: mobile
-        run: buildozer -v android debug
+        run: |
+          buildozer -v android debug || {
+            echo "--- Primer intento fallido, parcheando archivos badsyntax y reintentando ---"
+            find .buildozer ~/.buildozer -name "badsyntax_pep3120.py" 2>/dev/null \
+              -exec sed -i '1s/^/# -*- coding: latin-1 -*-\n/' {} \;
+            buildozer -v android debug
+          }
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
