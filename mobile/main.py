@@ -35,8 +35,7 @@ class IPHApp(App):
 
     def on_resume(self):
         """Evita pantalla negra al volver de otra app (PDF viewer, etc.)."""
-        Window.canvas.ask_update()
-        Clock.schedule_once(lambda dt: Window.canvas.ask_update(), 0.1)
+        Window.dispatch('on_resize', Window.width, Window.height)
 
 
 if __name__ == '__main__':

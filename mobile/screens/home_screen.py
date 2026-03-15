@@ -310,7 +310,7 @@ class HomeScreen(Screen):
         user = api_client.get_user() or {}
 
         content = popup_content(padding=14, spacing=6)
-        scroll = ScrollView(size_hint_y=None, height=dp(380))
+        scroll = ScrollView()  # size_hint_y=1: ocupa espacio disponible entre btns
         form = BoxLayout(orientation='vertical', spacing=dp(4), size_hint_y=None)
         form.bind(minimum_height=form.setter('height'))
 

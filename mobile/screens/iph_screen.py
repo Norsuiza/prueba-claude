@@ -132,7 +132,8 @@ class IPHScreen(Screen):
         bar_outer.bind(pos=lambda w, v: setattr(w._bg, 'pos', v),
                        size=lambda w, v: setattr(w._bg, 'size', v))
 
-        self._bar_fill = BoxLayout(size_hint_x=0, size_hint_y=1)
+        self._bar_outer = bar_outer
+        self._bar_fill = BoxLayout(size_hint_x=None, size_hint_y=1, width=0)
         with self._bar_fill.canvas.before:
             Color(*C_GREEN)
             self._bar_fill._bg = RoundedRectangle(
@@ -185,10 +186,15 @@ class IPHScreen(Screen):
         total = len(self.questions)
         if total == 0:
             return
-        pct = int(self.current_index / total * 100)
-        self._bar_fill.size_hint_x = pct / 100
+        done = min(self.current_index, total)
+        if done >= total:
+            pct = 100
+            self.lbl_progress.text = '¡Formulario completo!'
+        else:
+            pct = int(done / total * 100)
+            self.lbl_progress.text = f'Pregunta {done + 1} de {total}'
+        self._bar_fill.width = self._bar_outer.width * (pct / 100)
         self.lbl_pct.text = f'{pct}%'
-        self.lbl_progress.text = f'Pregunta {self.current_index + 1} de {total}'
 
     # ── Flujo chatbot ─────────────────────────────────────────────────────────
 
@@ -262,7 +268,6 @@ class IPHScreen(Screen):
                           on_press=lambda x: self._submit_text(q, ti.text.strip()))
         self.input_area.add_widget(ti)
         self.input_area.add_widget(btn)
-        ti.focus = True
 
     def _ui_time(self, q):
         now = datetime.now()
@@ -509,7 +514,7 @@ class IPHScreen(Screen):
     # ── Finalizar ─────────────────────────────────────────────────────────────
 
     def _show_finish(self):
-        self._bar_fill.size_hint_x = 1
+        self._bar_fill.width = self._bar_outer.width
         self.lbl_pct.text = '100%'
         self.lbl_progress.text = '¡Formulario completo!'
         self.input_area.clear_widgets()
