@@ -565,20 +565,18 @@ class IPHScreen(Screen):
                     VERSION        = autoclass('android.os.Build$VERSION')
 
                     if VERSION.SDK_INT >= 29:
-                        # Android 10+: MediaStore, sin necesidad de FileProvider
+                        # Android 10+: MediaStore (clases anidadas usan $ en jnius)
                         ContentValues = autoclass('android.content.ContentValues')
-                        MediaStore    = autoclass('android.provider.MediaStore')
+                        MSDl          = autoclass('android.provider.MediaStore$Downloads')
                         Environment   = autoclass('android.os.Environment')
 
                         vals = ContentValues()
-                        vals.put(MediaStore.Downloads.DISPLAY_NAME, filename)
-                        vals.put(MediaStore.Downloads.MIME_TYPE, 'application/pdf')
-                        vals.put(MediaStore.Downloads.RELATIVE_PATH,
-                                 Environment.DIRECTORY_DOWNLOADS)
+                        vals.put(MSDl.DISPLAY_NAME, filename)
+                        vals.put(MSDl.MIME_TYPE, 'application/pdf')
+                        vals.put(MSDl.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
 
                         resolver = PythonActivity.mActivity.getContentResolver()
-                        uri = resolver.insert(
-                            MediaStore.Downloads.EXTERNAL_CONTENT_URI, vals)
+                        uri = resolver.insert(MSDl.EXTERNAL_CONTENT_URI, vals)
 
                         with open(path, 'rb') as f:
                             data = f.read()
