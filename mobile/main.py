@@ -33,26 +33,10 @@ class IPHApp(App):
         sm.add_widget(IPHScreen(name='iph'))
         return sm
 
-    def on_start(self):
-        """Auto-login si hay sesión guardada."""
-        def check(dt):
-            token = api_client.get_token()
-            if token:
-                api_client.check_auth(
-                    on_success=self._auto_login_ok,
-                    on_error=lambda msg: None,
-                )
-        Clock.schedule_once(check, 0.5)
-
-    def _auto_login_ok(self, user):
-        from kivy.clock import Clock
-        Clock.schedule_once(lambda dt: self._go_home(), 0)
-
-    def _go_home(self):
-        sm = self.root
-        home = sm.get_screen('home')
-        home.refresh_user()
-        sm.current = 'home'
+    def on_resume(self):
+        """Evita pantalla negra al volver de otra app (PDF viewer, etc.)."""
+        Window.canvas.ask_update()
+        Clock.schedule_once(lambda dt: Window.canvas.ask_update(), 0.1)
 
 
 if __name__ == '__main__':
