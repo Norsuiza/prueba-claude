@@ -546,18 +546,6 @@ class IPHScreen(Screen):
             f'Archivo: {os.path.basename(path)}\n'
             f'Guardado en la app.'
         )
-        content = popup_content()
-        content.add_widget(Label(
-            text=f'PDF generado:\n{os.path.basename(path)}',
-            color=C_TEXT, font_size=dp(13), halign='center',
-            size_hint_y=None, height=dp(60),
-        ))
-        btn_ok = rounded_btn('Aceptar', height=dp(44), bg_color=C_GREEN)
-        pop = Popup(title='PDF Generado', content=content,
-                    size_hint=(0.85, None), height=dp(200))
-        btn_ok.bind(on_press=pop.dismiss)
-        content.add_widget(btn_ok)
-        pop.open()
 
     def _confirm_exit(self, *a):
         content = popup_content()
