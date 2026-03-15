@@ -544,8 +544,78 @@ class IPHScreen(Screen):
         self._bot(
             f'[b]PDF generado correctamente.[/b]\n'
             f'Archivo: {os.path.basename(path)}\n'
-            f'Guardado en la app.'
+            f'Guardado en la app. Abriendo...'
         )
+        from kivy.utils import platform
+        if platform == 'android':
+            Clock.schedule_once(lambda dt: self._abrir_pdf(path), 0.5)
+
+    def _abrir_pdf(self, path):
+        try:
+            from android.runnable import run_on_ui_thread
+            from jnius import autoclass
+
+            filename = os.path.basename(path)
+
+            @run_on_ui_thread
+            def _do():
+                try:
+                    Intent         = autoclass('android.content.Intent')
+                    PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                    VERSION        = autoclass('android.os.Build$VERSION')
+
+                    if VERSION.SDK_INT >= 29:
+                        # Android 10+: MediaStore, sin necesidad de FileProvider
+                        ContentValues = autoclass('android.content.ContentValues')
+                        MediaStore    = autoclass('android.provider.MediaStore')
+                        Environment   = autoclass('android.os.Environment')
+
+                        vals = ContentValues()
+                        vals.put(MediaStore.Downloads.DISPLAY_NAME, filename)
+                        vals.put(MediaStore.Downloads.MIME_TYPE, 'application/pdf')
+                        vals.put(MediaStore.Downloads.RELATIVE_PATH,
+                                 Environment.DIRECTORY_DOWNLOADS)
+
+                        resolver = PythonActivity.mActivity.getContentResolver()
+                        uri = resolver.insert(
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI, vals)
+
+                        with open(path, 'rb') as f:
+                            data = f.read()
+                        out = resolver.openOutputStream(uri)
+                        out.write(data)
+                        out.flush()
+                        out.close()
+                    else:
+                        # Android 8-9: copiar a Downloads clásico
+                        Environment = autoclass('android.os.Environment')
+                        StrictMode  = autoclass('android.os.StrictMode')
+                        VmBuilder   = autoclass('android.os.StrictMode$VmPolicy$Builder')
+                        Uri         = autoclass('android.net.Uri')
+                        File        = autoclass('java.io.File')
+
+                        StrictMode.setVmPolicy(VmBuilder().build())
+                        dl_dir = Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_DOWNLOADS).getAbsolutePath()
+                        dest = os.path.join(str(dl_dir), filename)
+                        shutil.copy2(path, dest)
+                        uri = Uri.fromFile(File(dest))
+
+                    intent = Intent(Intent.ACTION_VIEW)
+                    intent.setDataAndType(uri, 'application/pdf')
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    | Intent.FLAG_ACTIVITY_NEW_TASK)
+                    PythonActivity.mActivity.startActivity(intent)
+
+                except Exception as e:
+                    Clock.schedule_once(
+                        lambda dt, err=str(e): self._bot(
+                            f'PDF guardado pero no se pudo abrir: {err}\n'
+                            f'Búscalo en Descargas.'), 0)
+
+            _do()
+        except ImportError:
+            pass  # desktop: no hace nada
 
     def _confirm_exit(self, *a):
         content = popup_content()
