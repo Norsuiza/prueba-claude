@@ -76,7 +76,7 @@ class RegisterScreen(Screen):
                  size=lambda w, v: setattr(w._bg, 'size', v))
 
         btn_back = Button(
-            text='← Volver', size_hint_x=None, width=dp(80),
+            text='< Volver', size_hint_x=None, width=dp(80),
             background_color=(0, 0, 0, 0), color=C_WHITE, font_size=dp(13),
         )
         btn_back.bind(on_press=lambda x: setattr(self.manager, 'current', 'login'))

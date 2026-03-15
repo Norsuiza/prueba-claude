@@ -97,13 +97,13 @@ class IPHScreen(Screen):
                  size=lambda w, v: setattr(w._bg, 'size', v))
 
         btn_back = Button(
-            text='← Inicio', size_hint_x=None, width=dp(80),
+            text='< Inicio', size_hint_x=None, width=dp(80),
             background_color=(0, 0, 0, 0), background_normal='', background_down='',
             color=C_WHITE, font_size=dp(13),
         )
         btn_back.bind(on_press=self._confirm_exit)
 
-        self.lbl_section = Label(text='IPH · Delitos', font_size=dp(14),
+        self.lbl_section = Label(text='IPH - Delitos', font_size=dp(14),
                                   bold=True, color=C_WHITE)
         hdr.add_widget(btn_back)
         hdr.add_widget(self.lbl_section)
@@ -217,7 +217,7 @@ class IPHScreen(Screen):
             return
         q = self.questions[self.current_index]
         self._update_progress()
-        self.lbl_section.text = q.get('seccion', 'IPH · Delitos')
+        self.lbl_section.text = q.get('seccion', 'IPH - Delitos')
         self._bot(q['texto'])
         self._render_input(q)
 
@@ -264,7 +264,7 @@ class IPHScreen(Screen):
             padding=[dp(10), dp(10)], font_size=dp(15),
             cursor_color=C_GREEN,
         )
-        btn = rounded_btn('Siguiente →', height=dp(46),
+        btn = rounded_btn('Siguiente >', height=dp(46),
                           on_press=lambda x: self._submit_text(q, ti.text.strip()))
         self.input_area.add_widget(ti)
         self.input_area.add_widget(btn)
@@ -301,7 +301,7 @@ class IPHScreen(Screen):
         self.input_area.add_widget(lbl)
         self.input_area.add_widget(row)
         self.input_area.add_widget(
-            rounded_btn('Siguiente →', height=dp(46),
+            rounded_btn('Siguiente >', height=dp(46),
                         on_press=lambda x: self._submit_text(
                             q, f'{state["h"]:02d}:{state["m"]:02d}'))
         )
@@ -324,7 +324,7 @@ class IPHScreen(Screen):
         self.input_area.add_widget(lbl)
         self.input_area.add_widget(btn_cal)
         self.input_area.add_widget(
-            rounded_btn('Siguiente →', height=dp(46),
+            rounded_btn('Siguiente >', height=dp(46),
                         on_press=lambda x: self._submit_text(q, fmt()))
         )
 
@@ -418,7 +418,7 @@ class IPHScreen(Screen):
             padding=[dp(10), dp(10)], font_size=dp(14),
             cursor_color=C_GREEN,
         )
-        btn = rounded_btn('Siguiente →', height=dp(46),
+        btn = rounded_btn('Siguiente >', height=dp(46),
                           on_press=lambda x: self._submit_text(q, ti.text.strip()))
         self.input_area.add_widget(ti)
         self.input_area.add_widget(btn)
@@ -469,7 +469,7 @@ class IPHScreen(Screen):
         sc.add_widget(inner)
         self.input_area.add_widget(sc)
         self.input_area.add_widget(
-            rounded_btn('Confirmar selección →', height=dp(46),
+            rounded_btn('Confirmar seleccion >', height=dp(46),
                         on_press=lambda x: self._submit_multi(q))
         )
 

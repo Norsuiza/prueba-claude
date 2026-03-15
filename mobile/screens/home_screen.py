@@ -390,7 +390,7 @@ class HomeScreen(Screen):
             self.lbl_name.text = nombre or 'ChatPoli'
             cargo = user.get('cargo_grado', '')
             inst = user.get('institucion', '')
-            self.lbl_sub.text = f"{cargo} · {inst}".strip(' · ') or 'Culiacán, Sinaloa'
+            self.lbl_sub.text = f"{cargo} - {inst}".strip(' - ') or 'Culiacan, Sinaloa'
 
     def on_enter(self):
         self.refresh_user()
