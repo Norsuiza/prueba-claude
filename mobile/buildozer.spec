@@ -5,7 +5,8 @@ package.domain = mx.culiacan.transito
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json,pdf
 version = 1.2
-requirements = python3,kivy==2.3.0,requests,certifi,urllib3,charset-normalizer,idna
+version.code = 12
+requirements = python3,kivy==2.3.0,requests,certifi,urllib3,charset-normalizer,idna,pymupdf,plyer
 
 orientation = portrait
 fullscreen = 0
@@ -16,6 +17,7 @@ android.minapi = 26
 android.ndk = 25b
 android.accept_sdk_license = True
 android.archs = arm64-v8a
+android.release_artifact = aab
 source.exclude_dirs = __pycache__, .buildozer, bin, tests
 
 [buildozer]
