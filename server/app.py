@@ -14,14 +14,35 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-iph-2024')
+import secrets as _secrets
+
+_SECRET_KEY     = os.environ.get('SECRET_KEY')
+_JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+
+if not _SECRET_KEY:
+    _SECRET_KEY = _secrets.token_hex(32)
+
+if not _JWT_SECRET_KEY:
+    _JWT_SECRET_KEY = _secrets.token_hex(32)
+
+app.config['SECRET_KEY'] = _SECRET_KEY
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///iph_app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-iph-secret-2024')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
+app.config['JWT_SECRET_KEY'] = _JWT_SECRET_KEY
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
+
+
+class Report(db.Model):
+    id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    expediente  = db.Column(db.String(100), default='')
+    fecha       = db.Column(db.String(20),  default='')
+    detenido    = db.Column(db.String(200), default='')
+    created_at  = db.Column(db.String(30),  default='')
+    form_json   = db.Column(db.Text,        default='{}')
 
 
 class User(db.Model):
@@ -117,6 +138,86 @@ def update_profile():
             setattr(user, field, data[field])
     db.session.commit()
     return jsonify(user_to_dict(user))
+
+
+@app.route('/api/reports', methods=['POST'])
+@jwt_required()
+def save_report():
+    import json as _json
+    from datetime import datetime as _dt
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    form = data.get('form_data', {})
+    detenido = ' '.join(filter(None, [
+        form.get('detenido_nombre', ''),
+        form.get('detenido_primer_apellido', ''),
+        form.get('detenido_segundo_apellido', ''),
+    ])).strip() or 'Sin detenido'
+    report = Report(
+        user_id    = user_id,
+        expediente = form.get('no_expediente', 'N/A'),
+        fecha      = form.get('fecha_puesta_disposicion', ''),
+        detenido   = detenido,
+        created_at = _dt.now().strftime('%d/%m/%Y %H:%M'),
+        form_json  = _json.dumps(form, ensure_ascii=False),
+    )
+    db.session.add(report)
+    db.session.commit()
+    return jsonify({'id': report.id, 'message': 'Reporte guardado'}), 201
+
+
+@app.route('/api/reports', methods=['GET'])
+@jwt_required()
+def list_reports():
+    import json as _json
+    user_id = get_jwt_identity()
+    reports = Report.query.filter_by(user_id=user_id).order_by(Report.id.desc()).all()
+    return jsonify([{
+        'id':         r.id,
+        'expediente': r.expediente,
+        'fecha':      r.fecha,
+        'detenido':   r.detenido,
+        'created_at': r.created_at,
+    } for r in reports])
+
+
+@app.route('/api/reports/<int:report_id>/pdf', methods=['GET'])
+@jwt_required()
+def report_pdf(report_id):
+    import json as _json
+    user_id = get_jwt_identity()
+    report = Report.query.filter_by(id=report_id, user_id=user_id).first()
+    if not report:
+        return jsonify({'error': 'Reporte no encontrado'}), 404
+
+    proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mobile_dir = os.path.join(proj_root, 'mobile')
+    if mobile_dir not in sys.path:
+        sys.path.insert(0, mobile_dir)
+
+    try:
+        from utils.pdf_generator import generate_iph_pdf
+    except ImportError as e:
+        return jsonify({'error': f'pdf_generator no disponible: {e}'}), 500
+
+    tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+    tmp_path = tmp.name
+    tmp.close()
+    try:
+        form_data = _json.loads(report.form_json)
+        generate_iph_pdf(form_data, {}, tmp_path)
+        with open(tmp_path, 'rb') as f:
+            pdf_bytes = f.read()
+        filename = f'IPH_{report.expediente}_{report.id}.pdf'
+        return send_file(BytesIO(pdf_bytes), mimetype='application/pdf',
+                         as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
 
 
 @app.route('/api/generate_pdf', methods=['POST'])

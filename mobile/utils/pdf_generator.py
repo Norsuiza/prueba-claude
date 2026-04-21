@@ -164,8 +164,8 @@ def _fill_page5_6_7(doc, data):
     _put(p, 115, 208, _val(data, 'detenido_fecha_nacimiento'))
     _put(p, 370, 208, _val(data, 'detenido_edad', ''))
 
-    # No. identificación
-    _put(p, 112, 254, _val(data, 'detenido_identificacion_num', ''))
+    # Tipo de identificación
+    _put(p, 112, 254, _val(data, 'detenido_identificacion', ''))
 
     # Domicilio
     _put(p, 118, 286, _val(data, 'detenido_calle'))
@@ -193,7 +193,6 @@ def _fill_page9(page, data):
     _put(page, 200, 120, _val(data, 'vehiculo_hora_inspeccion', ''))
 
     _put(page, 220, 173, _val(data, 'vehiculo_marca'))
-    _put(page, 220, 173, '')  # submarca va después
     _put_after(page, 'Submarca:', _val(data, 'vehiculo_submarca'), dx=5)
     _put(page, 380, 173, _val(data, 'vehiculo_modelo', ''))
     _put(page, 505, 173, _val(data, 'vehiculo_color'))
@@ -205,6 +204,39 @@ def _fill_page9(page, data):
                     x=37, y=284, fontsize=FS_SM, max_width=520)
     _insert_wrapped(page, _val(data, 'vehiculo_destino'),
                     x=37, y=343, fontsize=FS_SM, max_width=520)
+
+
+def _fill_page_anexo_b(page, data):
+    """Anexo B: Uso de la Fuerza."""
+    _put(page, 80,  120, _val(data, 'lesionados_autoridad', '0'))
+    _put(page, 250, 120, _val(data, 'lesionados_persona', '0'))
+    _put(page, 80,  160, _val(data, 'nivel_fuerza'))
+    _insert_wrapped(page, _val(data, 'conductas_fuerza'),
+                    x=37, y=240, fontsize=FS, max_width=520, line_height=12)
+    _put(page, 80,  380, _val(data, 'asistencia_medica'))
+
+
+def _fill_page_anexo_d(page, data):
+    """Anexo D: Inventario de Armas/Objetos."""
+    _put(page, 80,  120, _val(data, 'objeto_tipo'))
+    _put(page, 380, 120, _val(data, 'objeto_cantidad', '1'))
+    _put(page, 112, 160, _val(data, 'objeto_numero_serie'))
+    _insert_wrapped(page, _val(data, 'objeto_descripcion'),
+                    x=37, y=220, fontsize=FS, max_width=520, line_height=12)
+    _insert_wrapped(page, _val(data, 'objeto_destino'),
+                    x=37, y=340, fontsize=FS_SM, max_width=520)
+
+
+def _fill_page_anexo_e(page, data):
+    """Anexo E: Entrevista."""
+    _put(page, 97,  78, _val(data, 'entrevistado_primer_apellido'))
+    _put(page, 266, 78, _val(data, 'entrevistado_segundo_apellido'))
+    _put(page, 430, 78, _val(data, 'entrevistado_nombre'))
+    _put(page, 80,  140, _val(data, 'entrevistado_calidad'))
+    _put(page, 280, 140, _val(data, 'entrevistado_sexo'))
+    _put(page, 80,  180, _val(data, 'entrevistado_telefono'))
+    _insert_wrapped(page, _val(data, 'entrevistado_relato'),
+                    x=37, y=250, fontsize=FS, max_width=520, line_height=12)
 
 
 def generate_iph_pdf(form_data, user_data, output_path):
@@ -223,8 +255,14 @@ def generate_iph_pdf(form_data, user_data, output_path):
     anexos = form_data.get('anexos_usados', [])
     if 'Anexo A - Detención(es)' in anexos:
         _fill_page5_6_7(doc, form_data)
-    if 'Anexo C - Inspección de vehículo' in anexos:
+    if 'Anexo B - Uso de la fuerza' in anexos and len(doc) > 7:
+        _fill_page_anexo_b(doc[7], form_data)
+    if 'Anexo C - Inspección de vehículo' in anexos and len(doc) > 8:
         _fill_page9(doc[8], form_data)
+    if 'Anexo D - Inventario de armas/objetos' in anexos and len(doc) > 9:
+        _fill_page_anexo_d(doc[9], form_data)
+    if 'Anexo E - Entrevistas' in anexos and len(doc) > 10:
+        _fill_page_anexo_e(doc[10], form_data)
 
     doc.save(output_path)
     doc.close()

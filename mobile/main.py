@@ -20,6 +20,7 @@ from screens.login_screen import LoginScreen
 from screens.register_screen import RegisterScreen
 from screens.home_screen import HomeScreen
 from screens.iph_screen import IPHScreen
+from screens.historial_screen import HistorialScreen
 from utils import api_client
 
 
@@ -31,6 +32,7 @@ class IPHApp(App):
         sm.add_widget(RegisterScreen(name='register'))
         sm.add_widget(HomeScreen(name='home'))
         sm.add_widget(IPHScreen(name='iph'))
+        sm.add_widget(HistorialScreen(name='historial'))
         return sm
 
     def on_resume(self):

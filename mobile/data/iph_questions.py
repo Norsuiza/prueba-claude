@@ -299,14 +299,14 @@ PREGUNTAS_SECCION4 = [
         'id': 'municipio',
         'seccion': 'Sección 4 - Lugar de la Intervención',
         'texto': '¿Municipio o demarcación territorial?',
-        'tipo': 'text',
+        'tipo': 'municipio_mx',
         'campo': 'municipio',
     },
     {
         'id': 'entidad',
         'seccion': 'Sección 4 - Lugar de la Intervención',
         'texto': '¿Entidad federativa?',
-        'tipo': 'text',
+        'tipo': 'estado_mx',
         'campo': 'entidad_federativa',
     },
     {
@@ -319,8 +319,8 @@ PREGUNTAS_SECCION4 = [
     {
         'id': 'coordenadas',
         'seccion': 'Sección 4 - Lugar de la Intervención',
-        'texto': '¿Tienes las coordenadas GPS del lugar? (escribe "Latitud,Longitud" o N/A)',
-        'tipo': 'text',
+        'texto': '¿Tienes las coordenadas GPS del lugar?',
+        'tipo': 'coordinates',
         'campo': 'coordenadas',
     },
     {
@@ -590,6 +590,20 @@ PREGUNTAS_ANEXO_B = [
 
 PREGUNTAS_ANEXO_C = [
     {
+        'id': 'vehiculo_fecha_inspeccion',
+        'seccion': 'Anexo C - Inspección de Vehículo',
+        'texto': '¿Cuál es la fecha de inspección del vehículo?',
+        'tipo': 'date',
+        'campo': 'vehiculo_fecha_inspeccion',
+    },
+    {
+        'id': 'vehiculo_hora_inspeccion',
+        'seccion': 'Anexo C - Inspección de Vehículo',
+        'texto': '¿Cuál es la hora de inspección del vehículo? (24 hrs)',
+        'tipo': 'time',
+        'campo': 'vehiculo_hora_inspeccion',
+    },
+    {
         'id': 'vehiculo_tipo',
         'seccion': 'Anexo C - Inspección de Vehículo',
         'texto': '¿Tipo de vehículo?',
@@ -662,6 +676,45 @@ PREGUNTAS_ANEXO_C = [
         'texto': '¿Destino que se le dio al vehículo?',
         'tipo': 'text',
         'campo': 'vehiculo_destino',
+    },
+]
+
+PREGUNTAS_ANEXO_D = [
+    {
+        'id': 'objeto_tipo',
+        'seccion': 'Anexo D - Inventario de Armas/Objetos',
+        'texto': '¿Qué tipo de objeto o arma se inventarió?',
+        'tipo': 'choice',
+        'opciones': ['Arma de fuego', 'Arma blanca', 'Droga/estupefaciente', 'Dinero en efectivo', 'Otro objeto'],
+        'campo': 'objeto_tipo',
+    },
+    {
+        'id': 'objeto_descripcion',
+        'seccion': 'Anexo D - Inventario de Armas/Objetos',
+        'texto': 'Describa el objeto o arma (marca, modelo, calibre, color, estado, etc.):',
+        'tipo': 'long_text',
+        'campo': 'objeto_descripcion',
+    },
+    {
+        'id': 'objeto_cantidad',
+        'seccion': 'Anexo D - Inventario de Armas/Objetos',
+        'texto': '¿Cantidad de objetos o armas encontrados?',
+        'tipo': 'text',
+        'campo': 'objeto_cantidad',
+    },
+    {
+        'id': 'objeto_numero_serie',
+        'seccion': 'Anexo D - Inventario de Armas/Objetos',
+        'texto': '¿Número de serie o matrícula? (si no aplica, escribe N/A)',
+        'tipo': 'text',
+        'campo': 'objeto_numero_serie',
+    },
+    {
+        'id': 'objeto_destino',
+        'seccion': 'Anexo D - Inventario de Armas/Objetos',
+        'texto': '¿Destino dado al objeto o arma?',
+        'tipo': 'text',
+        'campo': 'objeto_destino',
     },
 ]
 
@@ -741,6 +794,8 @@ def get_question_list(data=None):
         all_q += PREGUNTAS_ANEXO_B
     if 'Anexo C - Inspección de vehículo' in anexos:
         all_q += PREGUNTAS_ANEXO_C
+    if 'Anexo D - Inventario de armas/objetos' in anexos:
+        all_q += PREGUNTAS_ANEXO_D
     if 'Anexo E - Entrevistas' in anexos:
         all_q += PREGUNTAS_ANEXO_E
 
